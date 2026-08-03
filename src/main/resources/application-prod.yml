@@ -1,0 +1,30 @@
+spring:
+  profiles:
+    active: prod
+
+reader:
+  app:
+    storagePath: 'storage'
+    showUI: false
+    debug: false
+    packaged: false
+    secure: false
+    inviteCode: ""
+    secureKey: ""
+    proxy: false
+    proxyType: "HTTP"
+    proxyHost: ""
+    proxyPort: ""
+    proxyUsername: ""
+    proxyPassword: ""
+    cacheChapterContent: false
+    userLimit: 50
+    userBookLimit: 200
+    debugLog: false
+
+  server:
+    port: 8080
+    webUrl: http://localhost:${reader.server.port}
+
+logging:
+  path: "./logs"
