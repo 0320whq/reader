@@ -68,7 +68,7 @@ jobs:
           docker save ghcr.io/${{ github.repository }}:custom-latest | gzip > reader-custom.tar.gz
       -
         name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: reader-custom-image
           path: reader-custom.tar.gz
