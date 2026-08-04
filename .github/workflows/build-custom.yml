@@ -1,0 +1,75 @@
+name: Build Custom Reader Image
+
+on:
+  push:
+    tags:
+      - 'custom-**'
+  workflow_dispatch:
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '14'
+      -
+        name: Build web
+        run: cd web && npm install && npm run build
+      -
+        name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '8'
+      -
+        name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      -
+        name: Build with Gradle
+        run: ./gradlew bootJar
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      -
+        name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      -
+        name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:custom-latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+      -
+        name: Export Docker image to tar.gz
+        run: |
+          docker pull ghcr.io/${{ github.repository }}:custom-latest
+          docker save ghcr.io/${{ github.repository }}:custom-latest | gzip > reader-custom.tar.gz
+      -
+        name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: reader-custom-image
+          path: reader-custom.tar.gz
+          retention-days: 7
