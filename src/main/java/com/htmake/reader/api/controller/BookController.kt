@@ -229,7 +229,10 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
                 if (fileName.endsWith(".epub", true)) {
                     filePath = filePath + File.separator + "index.epub"
                 }
-                var newFile = File(getWorkDir(filePath))
+                var newFile = safeResolveFile(getWorkDir(), filePath)
+                if (newFile == null) {
+                    continue
+                }
                 if (!newFile.parentFile.exists()) {
                     newFile.parentFile.mkdirs()
                 }
@@ -1768,13 +1771,19 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
     }
 
     fun extractEpub(book: Book, force: Boolean = false): Boolean {
-        val epubExtractDir = File(getWorkDir(book.bookUrl + File.separator + "index"))
+        // Sanitize path components to prevent directory traversal in internal paths
+        val safeBookUrl = book.bookUrl.replace("..", "_").replace(File.separator, "_")
+        val epubExtractDir = safeResolveFile(getWorkDir(), "/" + safeBookUrl + File.separator + "index") ?: return false
         if (force || !epubExtractDir.exists()) {
             epubExtractDir.deleteRecursively()
-            var localEpubFile = File(getWorkDir(book.originName + File.separator + "index.epub"))
+            val safeOriginName = book.originName.replace("..", "_").replace(File.separator, "_")
+            var localEpubFile = safeResolveFile(getWorkDir(), "/" + safeOriginName + File.separator + "index.epub") ?: return false
             if (book.originName.indexOf("localStore") > 0) {
                 // 本地书仓的源文件
-                localEpubFile = File(getWorkDir(book.originName))
+                localEpubFile = safeResolveFile(getWorkDir(), "/" + safeOriginName) ?: return false
+            }
+            if (localEpubFile == null || !localEpubFile.exists()) {
+                return false
             }
             if (!localEpubFile.unzip(epubExtractDir.toString())) {
                 return false
