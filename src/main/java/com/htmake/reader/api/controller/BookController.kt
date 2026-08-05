@@ -231,7 +231,7 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
                 }
                 var newFile = safeResolveFile(getWorkDir(), filePath)
                 if (newFile == null) {
-                    continue
+                    return@forEach
                 }
                 if (!newFile.parentFile.exists()) {
                     newFile.parentFile.mkdirs()
@@ -2050,12 +2050,12 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
                 var fileName = File(rawFileName).name
                 if (fileName != rawFileName || fileName.contains("..") || fileName.contains("/") || fileName.contains("\\")) {
                     file.delete()
-                    continue
+                    return@forEach
                 }
                 val safeBase = safeResolveFile(getWorkDir("storage", "localStore"), path)
                 if (safeBase == null) {
                     file.delete()
-                    continue
+                    return@forEach
                 }
                 var newFile = File(safeBase, fileName)
                 if (!newFile.parentFile.exists()) {
