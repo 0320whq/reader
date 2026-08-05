@@ -362,30 +362,40 @@ export default {
       }
     },
     getUserInfo() {
-      networkFirstRequest(
-        () => Axios.get(this.api + "/getUserInfo"),
-        "userInfo"
-      ).then(
-        res => {
-          this.$store.commit("setConnected", true);
-          if (res.data.isSuccess) {
-            this.$store.commit("setIsSecureMode", res.data.data.secure);
-            if (res.data.data.secure && res.data.data.secureKey) {
-              this.$store.commit("setShowManagerMode", true);
+      let retryCount = 0;
+      const maxRetries = 3;
+      const attempt = () => {
+        networkFirstRequest(
+          () => Axios.get(this.api + "/getUserInfo"),
+          "userInfo"
+        ).then(
+          res => {
+            this.$store.commit("setConnected", true);
+            if (res.data.isSuccess) {
+              this.$store.commit("setIsSecureMode", res.data.data.secure);
+              if (res.data.data.secure && res.data.data.secureKey) {
+                this.$store.commit("setShowManagerMode", true);
+              }
+              if (res.data.data.userInfo) {
+                this.$store.commit("setUserInfo", res.data.data.userInfo);
+              }
+              // connected to backend, auto-restore config from server
+              this.autoRestoreConfig();
             }
-            if (res.data.data.userInfo) {
-              this.$store.commit("setUserInfo", res.data.data.userInfo);
+          },
+          error => {
+            if (retryCount < maxRetries) {
+              retryCount++;
+              setTimeout(attempt, 3000 * retryCount);
+            } else {
+              this.$message.error(
+                "加载用户信息失败 " + (error && error.toString())
+              );
             }
-            // connected to backend, auto-restore config from server
-            this.autoRestoreConfig();
           }
-        },
-        error => {
-          this.$message.error(
-            "加载用户信息失败 " + (error && error.toString())
-          );
-        }
-      );
+        );
+      };
+      attempt();
     },
     autoRestoreConfig() {
       if (!window.localStorage) return;
@@ -394,7 +404,7 @@ export default {
       if (localConfig) {
         try {
           const parsed = JSON.parse(localConfig);
-          if (parsed && typeof parsed === "object" && parsed.readFontSize) {
+          if (parsed && typeof parsed === "object" && parsed.fontSize) {
             // local config exists and has real data, skip restore
             return;
           }
@@ -422,7 +432,13 @@ export default {
     autoSaveConfig() {
       if (!window.localStorage) return;
       const userConfig = {};
-      ["config", "filterRules"].forEach(key => {
+      [
+        "config",
+        "filterRules",
+        "speechVoiceConfig",
+        "shelfConfig",
+        "searchConfig"
+      ].forEach(key => {
         const val = window.localStorage.getItem(key);
         if (val) {
           userConfig[key] = val;
