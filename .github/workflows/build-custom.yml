@@ -9,10 +9,6 @@ on:
 jobs:
   docker:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
     steps:
       -
         name: Checkout
@@ -45,44 +41,11 @@ jobs:
           gradle -b cli.gradle assemble --info
           mv ./build/libs/*.jar ./reader.jar
       -
-        name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            ghcr.io/0320whq/reader
-          tags: |
-            type=ref,event=tag
-            type=raw,value=custom-latest
-      -
-        name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      -
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      -
-        name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Build and push
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ./.github/workflows/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          platforms: |
-            linux/amd64
-      -
-        name: Export Docker image to tar.gz
+        name: Build Docker image
         run: |
-          docker pull ghcr.io/0320whq/reader:custom-latest
-          docker save ghcr.io/0320whq/reader:custom-latest | gzip > reader-custom.tar.gz
+          docker build -f ./.github/workflows/Dockerfile -t reader-custom:latest .
+          docker save reader-custom:latest | gzip > reader-custom.tar.gz
+          ls -lh reader-custom.tar.gz
       -
         name: Upload artifact
         uses: actions/upload-artifact@v4
