@@ -410,4 +410,26 @@ open class BaseController(override val coroutineContext: CoroutineContext): Coro
             }
         }
     }
+
+    /**
+     * 安全解析文件路径，防止路径穿越攻击。
+     * 将 home 和 path 拼接后规范化，确保结果路径仍在 home 目录内。
+     * @param home 基础目录（如用户书仓目录）
+     * @param path 相对子路径
+     * @return 如果解析后的路径在 home 内则返回 File，否则返回 null
+     */
+    fun safeResolveFile(home: String, path: String): File? {
+        if (path.isEmpty()) return null
+        // 拒绝明显的路径穿越尝试
+        if (path.contains("..")) return null
+        val homeFile = File(home).canonicalFile
+        val resolved = File(homeFile, path).canonicalFile
+        val homePath = homeFile.absolutePath
+        val resolvedPath = resolved.absolutePath
+        // 确保解析后的路径仍以 home 为前缀
+        if (!resolvedPath.startsWith(homePath)) {
+            return null
+        }
+        return resolved
+    }
 }

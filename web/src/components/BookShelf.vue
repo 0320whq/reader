@@ -82,7 +82,7 @@ export default {
       return book.bookUrl == this.$store.state.readingBook.bookUrl;
     },
     getBookshelf(refresh) {
-      if (this.shelfBooks.length) {
+      if (!refresh && this.shelfBooks.length) {
         return;
       }
       networkFirstRequest(

@@ -12,6 +12,9 @@ import java.io.FileInputStream
 import java.util.zip.ZipFile
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+import mu.KotlinLogging
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * @Date: 2019-07-19 23:43
@@ -48,22 +51,31 @@ fun File.unzip(descDir: String): Boolean {
     if (!this.exists()) {
         return false
     }
+    val descDirCanonical = File(descDir).canonicalFile
     val buffer = ByteArray(1024)
     var outputStream: OutputStream? = null
     var inputStream: InputStream? = null
+    var zf: ZipFile? = null
     try {
-        val zf = ZipFile(this.toString())
+        zf = ZipFile(this.toString())
         val entries = zf.entries()
         while (entries.hasMoreElements()) {
             val zipEntry: ZipEntry = entries.nextElement() as ZipEntry
             val zipEntryName: String = zipEntry.name
 
-            val descFilePath: String = descDir + File.separator + zipEntryName
+            // 防止 Zip Slip：校验解压目标路径是否在 descDir 内
+            val descFilePath = File(descDirCanonical, zipEntryName).canonicalFile
+            if (!descFilePath.startsWith(descDirCanonical)) {
+                logger.error { "Zip Slip detected: $zipEntryName resolves outside target directory" }
+                zf.close()
+                return false
+            }
+
             if (zipEntry.isDirectory) {
-                createDir(descFilePath)
+                createDir(descFilePath.toString())
             } else {
                 inputStream = zf.getInputStream(zipEntry)
-                val descFile: File = createFile(descFilePath)
+                val descFile: File = createFile(descFilePath.toString())
                 outputStream = FileOutputStream(descFile)
 
                 var len: Int
@@ -80,6 +92,7 @@ fun File.unzip(descDir: String): Boolean {
     } finally {
         inputStream?.close()
         outputStream?.close()
+        zf?.close()
     }
     return false
 }

@@ -410,7 +410,7 @@ export default {
     if (this.speechAvalable) {
       this.fetchVoiceList();
       if (window.speechSynthesis.onvoiceschanged !== undefined) {
-        window.speechSynthesis.onvoiceschanged = this.fetchVoiceList;
+        window.speechSynthesis.addEventListener("voiceschanged", this.fetchVoiceList);
       }
     }
     window.addEventListener("unload", this.saveReadingPosition);
@@ -461,6 +461,9 @@ export default {
     this.unwatchFn && this.unwatchFn();
     this.releaseWakeLockFn && this.releaseWakeLockFn();
     this.$Lazyload.$off("loaded", this.lazyloadHandler);
+    if (window.speechSynthesis) {
+      window.speechSynthesis.removeEventListener("voiceschanged", this.fetchVoiceList);
+    }
   },
   watch: {
     chapterName(to) {
@@ -591,7 +594,9 @@ export default {
       isCachingContent: false,
       cachingContentTip: "",
 
-      autoReading: false
+      autoReading: false,
+
+      showTextFilterPrompting: false
     };
   },
   computed: {
@@ -1858,6 +1863,9 @@ export default {
       }
     },
     getCurrentParagraph() {
+      if (!this.$refs.bookContentRef || !this.$refs.bookContentRef.$el) {
+        return null;
+      }
       const readingEle = this.$refs.bookContentRef.$el.querySelectorAll(
         ".reading"
       );
@@ -1894,6 +1902,9 @@ export default {
     },
     getPrevParagraph() {
       const current = this.getCurrentParagraph();
+      if (!current || !this.$refs.bookContentRef || !this.$refs.bookContentRef.$el) {
+        return null;
+      }
       const list = this.$refs.bookContentRef.$el.querySelectorAll("h3,p");
       for (let i = 0; i < list.length; i++) {
         if (i > 0 && current === list[i]) {
@@ -1904,6 +1915,9 @@ export default {
     },
     getNextParagraph() {
       const current = this.getCurrentParagraph();
+      if (!current || !this.$refs.bookContentRef || !this.$refs.bookContentRef.$el) {
+        return null;
+      }
       const list = this.$refs.bookContentRef.$el.querySelectorAll("h3,p");
       for (let i = 0; i < list.length; i++) {
         if (current === list[i]) {
@@ -2021,7 +2035,9 @@ export default {
             "bookChapterProgress@" +
               this.$store.state.readingBook.bookName +
               "_" +
-              this.$store.state.readingBook.author,
+              this.$store.state.readingBook.author +
+              "@" +
+              (this.$store.state.readingBook.bookUrl || "").MD5(16),
             position
           );
       } catch (error) {
@@ -2042,7 +2058,9 @@ export default {
             "bookChapterProgress@" +
               this.$store.state.readingBook.bookName +
               "_" +
-              this.$store.state.readingBook.author
+              this.$store.state.readingBook.author +
+              "@" +
+              (this.$store.state.readingBook.bookUrl || "").MD5(16)
           );
         if (+lastPosition) {
           this.$nextTick(() => {

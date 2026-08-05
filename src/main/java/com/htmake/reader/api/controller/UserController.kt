@@ -361,7 +361,13 @@ class UserController(coroutineContext: CoroutineContext): BaseController(corouti
             var file = File(it.uploadedFileName())
             logger.info("uploadFile: {} {} {}", it.uploadedFileName(), it.fileName(), file)
             if (file.exists()) {
-                var fileName = it.fileName()
+                var rawFileName = it.fileName()
+                // 仅取 basename，拒绝路径穿越字符
+                var fileName = File(rawFileName).name
+                if (fileName != rawFileName || fileName.contains("..") || fileName.contains("/") || fileName.contains("\\")) {
+                    file.delete()
+                    return returnData.setErrorMsg("非法文件名")
+                }
                 var newFile = File(getWorkDir("storage", "assets", userNameSpace, type, fileName))
                 if (!newFile.parentFile.exists()) {
                     newFile.parentFile.mkdirs()
@@ -399,7 +405,12 @@ class UserController(coroutineContext: CoroutineContext): BaseController(corouti
         if (!url.startsWith("/assets/" + userNameSpace + "/")) {
             return returnData.setErrorMsg("文件链接错误")
         }
-        var file = File(getWorkDir("storage" + url))
+        val assetRoot = getWorkDir("storage", "assets", userNameSpace)
+        val relPath = url.removePrefix("/assets/" + userNameSpace)
+        val file = safeResolveFile(assetRoot, relPath)
+        if (file == null) {
+            return returnData.setErrorMsg("非法路径")
+        }
         logger.info("delete file: {}", file)
         file.deleteRecursively()
         return returnData.setData("")

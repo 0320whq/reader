@@ -74,8 +74,12 @@ abstract class RestVerticle : CoroutineVerticle() {
         router.route().handler(LoggerHandler.create(LoggerFormat.DEFAULT));
         router.route("/reader3/*").handler {
             logger.info("{} {}", it.request().rawMethod(), URLDecoder.decode(it.request().absoluteURI(), "UTF-8"))
-            if (!it.request().rawMethod().equals("PUT") && (it.fileUploads() == null || it.fileUploads().isEmpty()) && it.bodyAsString.length > 0 && it.bodyAsString.length < 1000) {
-                logger.info("Request body: {}", it.bodyAsString)
+            if (!it.request().rawMethod().equals("PUT") && (it.fileUploads() == null || it.fileUploads().isEmpty())) {
+                val bodyStr = it.bodyAsString
+                val bodyLen = bodyStr?.length ?: 0
+                if (bodyLen > 0 && bodyLen < 1000) {
+                    logger.info("Request body: {}", bodyStr)
+                }
             }
             it.next()
         }

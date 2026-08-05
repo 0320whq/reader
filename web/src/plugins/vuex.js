@@ -474,7 +474,7 @@ export default new Vuex.Store({
       }
     },
     shelfBooks: state => {
-      return state.shelfBooks.sort(function(a, b) {
+      return [].concat(state.shelfBooks).sort(function(a, b) {
         var x = a["durChapterTime"] || 0;
         var y = b["durChapterTime"] || 0;
         return y - x;

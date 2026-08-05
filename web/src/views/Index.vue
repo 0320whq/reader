@@ -1602,7 +1602,6 @@ export default {
     document.title = "阅读";
     this.navigationClass =
       this.collapseMenu && !this.showNavigation ? "navigation-hidden" : "";
-    window.shelfPage = this;
     this.init();
   },
   activated() {

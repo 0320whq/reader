@@ -171,7 +171,6 @@ export default {
               });
             }
             this.localFileList = res.data.data;
-            this.showLocalStoreManageDialog = true;
           }
         },
         error => {

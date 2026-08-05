@@ -1165,11 +1165,12 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
             if (book.bookUrl.startsWith("/assets/")) {
                 // 临时文件，移动到书籍目录
                 // storage/assets/default/book/《极道天魔》（校对版全本）作者：滚开/《极道天魔》（校对版全本）作者：滚开.txt
-                val tempFile = File(getWorkDir("storage" + book.bookUrl))
-                if (!tempFile.exists()) {
-                    return returnData.setErrorMsg("上传书籍不存在")
+                val tempFile = safeResolveFile(getWorkDir("storage"), book.bookUrl)
+                if (tempFile == null || !tempFile.exists()) {
+                    return returnData.setErrorMsg("上传书籍不存在或路径非法")
                 }
-                val relativeLocalFilePath = Paths.get("storage", "data", userNameSpace, book.name + "_" + book.author, tempFile.name).toString()
+                val safeDirName = (book.name + "_" + book.author).replace("..", "_").replace("/", "_").replace("\\", "_")
+                val relativeLocalFilePath = Paths.get("storage", "data", userNameSpace, safeDirName, tempFile.name).toString()
                 val localFilePath = getWorkDir(relativeLocalFilePath)
                 logger.info("localFilePath: {}", localFilePath)
                 var localFile = File(localFilePath)
@@ -1197,7 +1198,8 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
                 if (!tempFile.exists()) {
                     return returnData.setErrorMsg("本地书仓书籍不存在")
                 }
-                val relativeLocalFilePath = Paths.get("storage", "data", userNameSpace, book.name + "_" + book.author, tempFile.name).toString()
+                val safeDirName = (book.name + "_" + book.author).replace("..", "_").replace("/", "_").replace("\\", "_")
+                val relativeLocalFilePath = Paths.get("storage", "data", userNameSpace, safeDirName, tempFile.name).toString()
                 book.bookUrl = relativeLocalFilePath
 
                 if (book.isEpub()) {
@@ -1358,7 +1360,13 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
         var existIndex: Int = -1
         for (i in 0 until bookshelf.size()) {
             var _book = bookshelf.getJsonObject(i).mapTo(Book::class.java)
-            if (_book.name.equals(book.name)) {
+            // 优先根据书籍链接查找
+            if (book.bookUrl.isNotEmpty() && _book.bookUrl.equals(book.bookUrl)) {
+                existIndex = i
+                break;
+            }
+            // 回退到作者和书名查找
+            if (book.name.isNotEmpty() && _book.name.equals(book.name) && book.author.isNotEmpty() && _book.author.equals(book.author)) {
                 existIndex = i
                 break;
             }
@@ -1370,7 +1378,8 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
         saveUserStorage(userNameSpace, "bookshelf", bookshelf)
 
         // 删除书籍目录
-        val localBookPath = File(getWorkDir("storage", "data", userNameSpace, book.name + "_" + book.author))
+        val safeDirName = (book.name + "_" + book.author).replace("..", "_").replace("/", "_").replace("\\", "_")
+        val localBookPath = File(getWorkDir("storage", "data", userNameSpace, safeDirName))
         localBookPath.deleteRecursively()
 
         return returnData.setData("")
@@ -2026,8 +2035,18 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
             var file = File(it.uploadedFileName())
             logger.info("uploadFile: {} {} {}", it.uploadedFileName(), it.fileName(), file)
             if (file.exists()) {
-                var fileName = it.fileName()
-                var newFile = File(getWorkDir("storage", "localStore", path, fileName))
+                var rawFileName = it.fileName()
+                var fileName = File(rawFileName).name
+                if (fileName != rawFileName || fileName.contains("..") || fileName.contains("/") || fileName.contains("\\")) {
+                    file.delete()
+                    continue
+                }
+                val safeBase = safeResolveFile(getWorkDir("storage", "localStore"), path)
+                if (safeBase == null) {
+                    file.delete()
+                    continue
+                }
+                var newFile = File(safeBase, fileName)
                 if (!newFile.parentFile.exists()) {
                     newFile.parentFile.mkdirs()
                 }
@@ -2077,7 +2096,10 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
             path = "/"
         }
         var home = getWorkDir("storage", "localStore")
-        var file = File(home + path)
+        var file = safeResolveFile(home, path)
+        if (file == null) {
+            return returnData.setErrorMsg("非法路径")
+        }
         logger.info("file: {} {}", path, file)
         if (!file.exists()) {
             return returnData.setErrorMsg("路径不存在")
@@ -2131,7 +2153,11 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
             return
         }
         var home = getWorkDir("storage", "localStore")
-        var file = File(home + path)
+        var file = safeResolveFile(home, path)
+        if (file == null) {
+            context.success(returnData.setErrorMsg("非法路径"))
+            return
+        }
         logger.info("file: {} {}", path, file)
         if (!file.exists()) {
             context.success(returnData.setErrorMsg("路径不存在"))
@@ -2170,7 +2196,10 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
             return returnData.setErrorMsg("参数错误")
         }
         var home = getWorkDir("storage", "localStore")
-        var file = File(home + path)
+        var file = safeResolveFile(home, path)
+        if (file == null) {
+            return returnData.setErrorMsg("非法路径")
+        }
         logger.info("file: {} {}", path, file)
         if (!file.exists()) {
             return returnData.setErrorMsg("路径不存在")
@@ -2204,8 +2233,10 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
         path.forEach {
             var filePath = URLDecoder.decode(it as String? ?: "", "UTF-8")
             if (filePath.isNotEmpty()) {
-                var file = File(home + filePath)
-                file.deleteRecursively()
+                var file = safeResolveFile(home, filePath)
+                if (file != null) {
+                    file.deleteRecursively()
+                }
             }
         }
         return returnData.setData("")

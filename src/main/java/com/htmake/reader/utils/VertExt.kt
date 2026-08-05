@@ -13,6 +13,8 @@ import java.net.URLDecoder
 import java.net.URLEncoder
 import java.io.File
 import java.nio.file.Paths
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 import com.htmake.reader.config.AppConfig
 import com.google.gson.reflect.TypeToken
 import kotlin.reflect.KProperty1
@@ -27,6 +29,8 @@ import io.legado.app.utils.MD5Utils
  * @Description:
  */
 private val logger = KotlinLogging.logger {}
+
+private val storageLock = ReentrantLock()
 
 val gson = GsonBuilder().disableHtmlEscaping().create()
 val prettyGson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
@@ -124,49 +128,53 @@ fun getStoragePath(): String {
 }
 
 fun saveStorage(vararg name: String, value: Any, pretty: Boolean = false) {
-    val toJson: String = if (value is JsonObject || value is JsonArray) {
-        value.toString()
-    } else if (pretty) {
-        prettyGson.toJson(value)
-    } else {
-        gson.toJson(value)
-    }
+    storageLock.withLock {
+        val toJson: String = if (value is JsonObject || value is JsonArray) {
+            value.toString()
+        } else if (pretty) {
+            prettyGson.toJson(value)
+        } else {
+            gson.toJson(value)
+        }
 
-    var storagePath = getStoragePath()
-    var storageDir = File(storagePath)
-    if (!storageDir.exists()) {
-        storageDir.mkdirs()
-    }
+        var storagePath = getStoragePath()
+        var storageDir = File(storagePath)
+        if (!storageDir.exists()) {
+            storageDir.mkdirs()
+        }
 
-    val filename = name.last()
-    val file = File(getRelativePath(storagePath, *name.copyOfRange(0, name.size - 1), "${filename}.json"))
-    // val file = File(storagePath + "/${name}.json")
-    logger.info("storage key: {} path: {}", name, file.absoluteFile)
+        val filename = name.last()
+        val file = File(getRelativePath(storagePath, *name.copyOfRange(0, name.size - 1), "${filename}.json"))
+        // val file = File(storagePath + "/${name}.json")
+        logger.info("storage key: {} path: {}", name, file.absoluteFile)
 
-    if (!file.parentFile.exists()) {
-        file.parentFile.mkdirs()
-    }
+        if (!file.parentFile.exists()) {
+            file.parentFile.mkdirs()
+        }
 
-    if (!file.exists()) {
-        file.createNewFile()
+        if (!file.exists()) {
+            file.createNewFile()
+        }
+        file.writeText(toJson)
     }
-    file.writeText(toJson)
 }
 
 fun getStorage(vararg name: String): String?  {
-    var storagePath = getStoragePath()
-    var storageDir = File(storagePath)
-    if (!storageDir.exists()) {
-        storageDir.mkdirs()
-    }
+    return storageLock.withLock {
+        var storagePath = getStoragePath()
+        var storageDir = File(storagePath)
+        if (!storageDir.exists()) {
+            storageDir.mkdirs()
+        }
 
-    val filename = name.last()
-    val file = File(getRelativePath(storagePath, *name.copyOfRange(0, name.size - 1), "${filename}.json"))
-    logger.info("storage key: {} path: {}", name, file.absoluteFile)
-    if (!file.exists()) {
-        return null
+        val filename = name.last()
+        val file = File(getRelativePath(storagePath, *name.copyOfRange(0, name.size - 1), "${filename}.json"))
+        logger.info("storage key: {} path: {}", name, file.absoluteFile)
+        if (!file.exists()) {
+            return@withLock null
+        }
+        return@withLock file.readText()
     }
-    return file.readText()
 }
 
 fun asJsonArray(value: Any?): JsonArray? {

@@ -258,7 +258,8 @@ export default {
       );
     },
     initIframe() {
-      window.addEventListener("message", event => {
+      this._removeIframeMessageHandler();
+      this._iframeMessageHandler = event => {
         if (
           this.$refs.iframe &&
           event.source === this.$refs.iframe.contentWindow
@@ -302,7 +303,14 @@ export default {
           //   this.$emit("locationChange", message.data);
           // }
         }
-      });
+      };
+      window.addEventListener("message", this._iframeMessageHandler);
+    },
+    _removeIframeMessageHandler() {
+      if (this._iframeMessageHandler) {
+        window.removeEventListener("message", this._iframeMessageHandler);
+        this._iframeMessageHandler = null;
+      }
     },
     syncIframeHeight() {
       this.sendToIframe("execute", {
@@ -387,9 +395,9 @@ export default {
         const s = val % 60;
         return pad(m) + ":" + pad(s);
       } else {
-        const h = Math.round(val / 3600);
-        const m = Math.round(val / 3600 / 60);
-        const s = val % 60;
+        const h = Math.floor(val / 3600);
+        const m = Math.floor((val % 3600) / 60);
+        const s = Math.floor(val % 60);
         return pad(h) + ":" + pad(m) + ":" + pad(s);
       }
     },
@@ -499,6 +507,9 @@ export default {
     },
     onWaiting() {
       // console.log("onWaiting", arguments);
+    },
+    beforeDestroy() {
+      this._removeIframeMessageHandler();
     }
   }
 };

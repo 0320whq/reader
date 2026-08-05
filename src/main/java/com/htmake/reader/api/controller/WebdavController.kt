@@ -231,7 +231,11 @@ class WebdavController(coroutineContext: CoroutineContext, router: Router, onHan
         var home = getUserWebdavHome(context)
         var path = context.request().path().replace("/reader3/webdav/", "/", true)
         path = URLDecoder.decode(path, "UTF-8")
-        var file = File(home + path)
+        var file = safeResolveFile(home, path)
+        if (file == null) {
+            context.response().setStatusCode(400).end()
+            return
+        }
         if (!file.exists()) {
             context.response().setStatusCode(404).end()
             return
@@ -317,7 +321,11 @@ class WebdavController(coroutineContext: CoroutineContext, router: Router, onHan
         var home = getUserWebdavHome(context)
         var path = context.request().path().replace("/reader3/webdav/", "/", true)
         path = URLDecoder.decode(path, "UTF-8")
-        var file = File(home + path)
+        var file = safeResolveFile(home, path)
+        if (file == null) {
+            context.response().setStatusCode(400).end()
+            return
+        }
         if (file.exists()) {
             // 文件夹存在时，返回成功
             context.response().setStatusCode(201).end()
@@ -335,7 +343,11 @@ class WebdavController(coroutineContext: CoroutineContext, router: Router, onHan
         var home = getUserWebdavHome(context)
         var path = context.request().path().replace("/reader3/webdav/", "/", true)
         path = URLDecoder.decode(path, "UTF-8")
-        var file = File(home + path)
+        var file = safeResolveFile(home, path)
+        if (file == null) {
+            context.response().setStatusCode(400).end()
+            return
+        }
         if (!file.parentFile.exists()) {
             context.response().setStatusCode(409).end()
             return
@@ -364,7 +376,11 @@ class WebdavController(coroutineContext: CoroutineContext, router: Router, onHan
         var home = getUserWebdavHome(context)
         var path = context.request().path().replace("/reader3/webdav/", "/", true)
         path = URLDecoder.decode(path, "UTF-8")
-        var file = File(home + path)
+        var file = safeResolveFile(home, path)
+        if (file == null) {
+            context.response().setStatusCode(400).end()
+            return
+        }
         if (!file.exists()) {
             context.response().setStatusCode(404).end()
             return
@@ -380,7 +396,11 @@ class WebdavController(coroutineContext: CoroutineContext, router: Router, onHan
         var home = getUserWebdavHome(context)
         var path = context.request().path().replace("/reader3/webdav/", "/", true)
         path = URLDecoder.decode(path, "UTF-8")
-        var file = File(home + path)
+        var file = safeResolveFile(home, path)
+        if (file == null) {
+            context.response().setStatusCode(400).end()
+            return
+        }
         if (!file.exists()) {
             context.response().setStatusCode(404).end()
             return
@@ -394,7 +414,11 @@ class WebdavController(coroutineContext: CoroutineContext, router: Router, onHan
         var path = context.request().path().replace("/reader3/webdav/", "/", true)
         path = URLDecoder.decode(path, "UTF-8")
 
-        var file = File(home + path)
+        var file = safeResolveFile(home, path)
+        if (file == null) {
+            context.response().setStatusCode(400).end()
+            return
+        }
         if (!file.exists()) {
             context.response().setStatusCode(412).end()
             return
@@ -412,7 +436,11 @@ class WebdavController(coroutineContext: CoroutineContext, router: Router, onHan
         }
 
         var overwrite = context.request().getHeader("Overwrite")
-        var destinationFile = File(home + URLDecoder.decode(destination, "UTF-8"))
+        var destinationFile = safeResolveFile(home, URLDecoder.decode(destination, "UTF-8"))
+        if (destinationFile == null) {
+            context.response().setStatusCode(400).end()
+            return
+        }
         if (destinationFile.exists()) {
             if (overwrite == null || overwrite.isEmpty()) {
                 context.response().setStatusCode(412).end()
@@ -430,7 +458,11 @@ class WebdavController(coroutineContext: CoroutineContext, router: Router, onHan
         var path = context.request().path().replace("/reader3/webdav/", "/", true)
         path = URLDecoder.decode(path, "UTF-8")
 
-        var file = File(home + path)
+        var file = safeResolveFile(home, path)
+        if (file == null) {
+            context.response().setStatusCode(400).end()
+            return
+        }
         if (!file.exists()) {
             context.response().setStatusCode(412).end()
             return
@@ -448,7 +480,11 @@ class WebdavController(coroutineContext: CoroutineContext, router: Router, onHan
         }
 
         var overwrite = context.request().getHeader("Overwrite")
-        var destinationFile = File(home + URLDecoder.decode(destination, "UTF-8"))
+        var destinationFile = safeResolveFile(home, URLDecoder.decode(destination, "UTF-8"))
+        if (destinationFile == null) {
+            context.response().setStatusCode(400).end()
+            return
+        }
         if (destinationFile.exists()) {
             if (overwrite == null || overwrite.isEmpty()) {
                 context.response().setStatusCode(412).end()
@@ -537,7 +573,10 @@ class WebdavController(coroutineContext: CoroutineContext, router: Router, onHan
             path = "/"
         }
         var home = getUserWebdavHome(context)
-        var file = File(home + path)
+        var file = safeResolveFile(home, path)
+        if (file == null) {
+            return returnData.setErrorMsg("非法路径")
+        }
         logger.info("file: {} {}", path, file)
         if (!file.exists()) {
             return returnData.setErrorMsg("路径不存在")
@@ -591,7 +630,11 @@ class WebdavController(coroutineContext: CoroutineContext, router: Router, onHan
             return
         }
         var home = getUserWebdavHome(context)
-        var file = File(home + path)
+        var file = safeResolveFile(home, path)
+        if (file == null) {
+            context.success(returnData.setErrorMsg("非法路径"))
+            return
+        }
         logger.info("file: {} {}", path, file)
         if (!file.exists()) {
             context.success(returnData.setErrorMsg("路径不存在"))
@@ -627,7 +670,10 @@ class WebdavController(coroutineContext: CoroutineContext, router: Router, onHan
             return returnData.setErrorMsg("参数错误")
         }
         var home = getUserWebdavHome(context)
-        var file = File(home + path)
+        var file = safeResolveFile(home, path)
+        if (file == null) {
+            return returnData.setErrorMsg("非法路径")
+        }
         logger.info("file: {} {}", path, file)
         if (!file.exists()) {
             return returnData.setErrorMsg("路径不存在")
@@ -658,8 +704,10 @@ class WebdavController(coroutineContext: CoroutineContext, router: Router, onHan
         path.forEach {
             var filePath = URLDecoder.decode(it as String? ?: "", "UTF-8")
             if (filePath.isNotEmpty()) {
-                var file = File(home + filePath)
-                file.deleteRecursively()
+                var file = safeResolveFile(home, filePath)
+                if (file != null) {
+                    file.deleteRecursively()
+                }
             }
         }
         return returnData.setData("")
@@ -696,7 +744,10 @@ class WebdavController(coroutineContext: CoroutineContext, router: Router, onHan
             return returnData.setErrorMsg("路径不是zip备份文件")
         }
         var home = getUserWebdavHome(context)
-        var file = File(home + path)
+        var file = safeResolveFile(home, path)
+        if (file == null) {
+            return returnData.setErrorMsg("非法路径")
+        }
         logger.info("file: {} {}", path, file)
         if (!file.exists()) {
             return returnData.setErrorMsg("路径不存在")
