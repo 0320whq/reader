@@ -8,6 +8,7 @@
       设置
       <div class="title-btn" @click="resetConfig">重置为默认配置</div>
     </div>
+    <FilterRules :visible="ruleEditorVisible" @close="ruleEditorVisible = false" />
     <div class="setting-list">
       <ul>
         <li>
@@ -291,9 +292,13 @@ import Axios from "../plugins/axios";
 import settings from "../plugins/config";
 import eventBus from "../plugins/eventBus";
 import { isMiniInterface } from "../plugins/helper";
+import FilterRules from "./FilterRules.vue";
 
 export default {
   name: "ReadSettings",
+  components: {
+    FilterRules
+  },
   data() {
     return {
       themeColors: [
@@ -350,7 +355,8 @@ export default {
       selectionActions: ["过滤弹窗", "忽略"],
       pageModes: ["自适应", "手机模式"],
       pageTypes: ["正常", "Kindle"],
-      themeTypes: ["day", "night"]
+      themeTypes: ["day", "night"],
+      ruleEditorVisible: false
     };
   },
   mounted() {},
@@ -728,25 +734,7 @@ export default {
       this.$emit("showClickZone");
     },
     showRuleEditor() {
-      this.$emit("close");
-      eventBus.$emit(
-        "showEditor",
-        "修改过滤规则",
-        JSON.stringify(this.$store.state.filterRules, null, 4),
-        async (content, close) => {
-          try {
-            const filterRules = JSON.parse(content);
-            if (!Array.isArray(filterRules)) {
-              this.$message.error("过滤规则必须是JSON数组格式");
-              return;
-            }
-            this.$store.commit("setFilterRules", filterRules);
-            close();
-          } catch (e) {
-            this.$message.error("过滤规则必须是JSON数组格式");
-          }
-        }
-      );
+      this.ruleEditorVisible = true;
     }
   }
 };
