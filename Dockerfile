@@ -35,4 +35,4 @@ EXPOSE 8080
 ENTRYPOINT ["/sbin/tini", "--"]
 # COPY --from=hengyunabc/arthas:latest /opt/arthas /opt/arthas
 COPY --from=build-env /app/build/libs/app-2.0.0.jar /app/bin/reader.jar
-CMD ["java", "-jar", "/app/bin/reader.jar" ]
+CMD ["java", "-Xmx256m", "-jar", "/app/bin/reader.jar" ]
