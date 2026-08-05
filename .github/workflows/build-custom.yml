@@ -20,20 +20,7 @@ jobs:
           node-version: '14'
       -
         name: Build web
-        run: |
-          cd web
-          npm install 2>&1 | tee npm-install.log
-          npm run build --mode production 2>&1 | tee npm-build.log
-      -
-        name: Upload build logs
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-build-logs
-          path: |
-            web/npm-install.log
-            web/npm-build.log
-          retention-days: 1
+        run: cd web && npm ci && npm run build
       -
         name: Setup Java
         uses: actions/setup-java@v4
