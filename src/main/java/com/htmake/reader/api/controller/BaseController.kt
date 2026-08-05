@@ -422,14 +422,12 @@ open class BaseController(override val coroutineContext: CoroutineContext): Coro
         if (path.isEmpty()) return null
         // 拒绝明显的路径穿越尝试
         if (path.contains("..")) return null
-        val homeFile = File(home).canonicalFile
-        val resolved = File(homeFile, path).canonicalFile
-        val homePath = homeFile.absolutePath
-        val resolvedPath = resolved.absolutePath
-        // 确保解析后的路径仍以 home 为前缀
-        if (!resolvedPath.startsWith(homePath)) {
-            return null
+        return try {
+            val homeFile = File(home).canonicalFile
+            val target = File(homeFile, path).canonicalFile
+            if (target == homeFile || target.startsWith(homeFile)) target else null
+        } catch (e: Exception) {
+            null
         }
-        return resolved
     }
 }

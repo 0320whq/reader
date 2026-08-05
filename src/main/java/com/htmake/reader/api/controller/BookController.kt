@@ -1194,8 +1194,10 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
                 }
             } else if (book.bookUrl.indexOf("storage/localStore") >= 0) {
                 // 本地书仓，不用移动书籍
-                val tempFile = File(getWorkDir(book.bookUrl))
-                if (!tempFile.exists()) {
+                val localStoreRoot = getWorkDir("storage", "localStore")
+                val relPath = book.bookUrl.removePrefix("storage/localStore").removePrefix("/")
+                val tempFile = safeResolveFile(localStoreRoot, relPath)
+                if (tempFile == null || !tempFile.exists()) {
                     return returnData.setErrorMsg("本地书仓书籍不存在")
                 }
                 val safeDirName = (book.name + "_" + book.author).replace("..", "_").replace("/", "_").replace("\\", "_")
@@ -1366,9 +1368,9 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
                 break;
             }
             // 回退到作者和书名查找
-            if (book.name.isNotEmpty() && _book.name.equals(book.name) && book.author.isNotEmpty() && _book.author.equals(book.author)) {
+            if (existIndex < 0 && book.name.isNotEmpty() && _book.name.equals(book.name) && book.author.isNotEmpty() && _book.author.equals(book.author)) {
                 existIndex = i
-                break;
+                // 不 break，继续查找是否有 bookUrl 精确匹配
             }
         }
         if (existIndex >= 0) {
@@ -1379,8 +1381,8 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
 
         // 删除书籍目录
         val safeDirName = (book.name + "_" + book.author).replace("..", "_").replace("/", "_").replace("\\", "_")
-        val localBookPath = File(getWorkDir("storage", "data", userNameSpace, safeDirName))
-        localBookPath.deleteRecursively()
+        val localBookPath = safeResolveFile(getWorkDir("storage", "data", userNameSpace), "/" + safeDirName)
+        localBookPath?.deleteRecursively()
 
         return returnData.setData("")
     }
@@ -1711,9 +1713,9 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
                 break;
             }
             // 根据作者和书名查找
-            if (book.name.isNotEmpty() && _book.name.equals(book.name) && book.author.isNotEmpty() && _book.author.equals(book.author)) {
+            if (existIndex < 0 && book.name.isNotEmpty() && _book.name.equals(book.name) && book.author.isNotEmpty() && _book.author.equals(book.author)) {
                 existIndex = i
-                break;
+                // 不 break，继续查找是否有 bookUrl 精确匹配
             }
         }
         if (existIndex >= 0) {

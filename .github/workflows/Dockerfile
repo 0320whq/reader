@@ -1,4 +1,4 @@
-FROM openjdk:8-jdk-alpine
+FROM eclipse-temurin:8-jdk-alpine
 # Install base packages
 RUN \
     # apk update; \
@@ -15,4 +15,4 @@ ENV TZ=Asia/Shanghai
 EXPOSE 8080
 ENTRYPOINT ["/sbin/tini", "--"]
 ADD ./reader.jar /app/bin/reader.jar
-CMD ["java", "-jar", "/app/bin/reader.jar" ]
+CMD ["java", "-Xmx256m", "-jar", "/app/bin/reader.jar" ]

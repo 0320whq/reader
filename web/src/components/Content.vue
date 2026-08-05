@@ -389,10 +389,10 @@ export default {
       }
       const pad = v => (v >= 10 ? "" + v : "0" + v);
       if (val < 60) {
-        return "00:" + pad(val);
+        return "00:" + pad(Math.floor(val));
       } else if (val < 3600) {
-        const m = Math.round(val / 60);
-        const s = val % 60;
+        const m = Math.floor(val / 60);
+        const s = Math.floor(val % 60);
         return pad(m) + ":" + pad(s);
       } else {
         const h = Math.floor(val / 3600);
