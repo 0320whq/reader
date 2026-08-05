@@ -8,7 +8,10 @@
       设置
       <div class="title-btn" @click="resetConfig">重置为默认配置</div>
     </div>
-    <FilterRules :visible="ruleEditorVisible" @close="ruleEditorVisible = false" />
+    <FilterRules
+      :visible="ruleEditorVisible"
+      @close="ruleEditorVisible = false"
+    />
     <div class="setting-list">
       <ul>
         <li>
@@ -290,7 +293,6 @@
 import "../assets/fonts/iconfont.css";
 import Axios from "../plugins/axios";
 import settings from "../plugins/config";
-import eventBus from "../plugins/eventBus";
 import { isMiniInterface } from "../plugins/helper";
 import FilterRules from "./FilterRules.vue";
 
