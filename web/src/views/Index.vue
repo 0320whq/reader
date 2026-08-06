@@ -2277,25 +2277,21 @@ export default {
       );
     },
     handleCheckAllChange(val) {
-      let hasFilterd = false;
+      let hasFiltered = false;
       this.checkedSourceIndex = val
-        ? this.importSourceList
-            .map((v, i) => {
-              // 不勾选使用了 js，webview的书源
-              const source = JSON.stringify(v);
-              if (
-                source.indexOf("@js:") !== -1 ||
-                source.indexOf("webView:") !== -1
-              ) {
-                hasFilterd = true;
-                return false;
-              }
-              return i;
-            })
-            .filter(v => v)
+        ? this.importSourceList.map((v, i) => {
+            const source = JSON.stringify(v);
+            if (
+              source.indexOf("@js:") !== -1 ||
+              source.indexOf("webView:") !== -1
+            ) {
+              hasFiltered = true;
+            }
+            return i;
+          })
         : [];
-      if (val && hasFilterd) {
-        this.$message.info("部分使用了Javascript和Webview的书源未勾选");
+      if (val && hasFiltered) {
+        this.$message.info("已全选所有书源，部分书源包含 JavaScript 或 WebView");
       }
       this.isIndeterminate = false;
     },
