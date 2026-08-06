@@ -2,8 +2,7 @@
   <div class="filter-rules-overlay" v-if="visible" @click.self="close">
     <div
       class="filter-rules-panel"
-      :style="popupTheme"
-      :class="{ night: $store.getters.isNight, day: !$store.getters.isNight }"
+      :class="{ night: $store.getters.isNight }"
     >
       <div class="panel-header">
         <span class="panel-title">过滤规则管理</span>
@@ -102,13 +101,6 @@ export default {
     };
   },
   computed: {
-    popupTheme() {
-      const config = this.$store.getters.config;
-      return {
-        background: config.bg,
-        color: config.fg
-      };
-    },
     filterRules() {
       return this.$store.state.filterRules || [];
     },
@@ -215,6 +207,8 @@ export default {
   flex-direction: column;
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  background: #fff;
+  color: #333;
 }
 
 .panel-header {
@@ -425,17 +419,22 @@ export default {
 }
 
 /* 夜间模式 */
-.night {
+.night .filter-rules-panel {
+  background: #2c2c2c;
+  color: #eee;
+
   .panel-header {
-    border-color: #333;
+    border-color: #444;
   }
 
   .list-header {
     background: rgba(255, 255, 255, 0.06);
+    color: #ddd;
   }
 
   .list-row {
-    border-color: #333;
+    border-color: #444;
+    color: #ddd;
 
     &:hover {
       background: rgba(255, 255, 255, 0.04);
@@ -444,24 +443,43 @@ export default {
 
   .fr-input,
   .fr-select {
-    border-color: #444;
+    background: #3a3a3a;
+    border-color: #555;
+    color: #eee;
+
+    &::placeholder {
+      color: #999;
+    }
 
     option {
-      background: #333;
+      background: #3a3a3a;
       color: #eee;
     }
   }
 
   .panel-footer {
-    border-color: #333;
+    border-color: #444;
   }
 
   .rules-list-section {
-    border-color: #333;
+    border-color: #444;
   }
 
   .empty-state {
-    color: #666;
+    color: #999;
+  }
+
+  .fr-btn-clear {
+    border-color: #555;
+    color: #eee;
+  }
+
+  .fr-label {
+    color: #bbb;
+  }
+
+  .scope-hint {
+    color: #999;
   }
 }
 </style>
