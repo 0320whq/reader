@@ -109,13 +109,21 @@ class UmdFile(var book: Book) {
             return
         }
         val coverFile = "${MD5Utils.md5Encode16(book.bookUrl)}.jpg"
-        val relativeCoverUrl = Paths.get("assets", "covers", coverFile).toString()
+        // 使用正斜杠，避免 Windows 反斜杠破坏前端 /assets 路径判断
+        val relativeCoverUrl = "assets/covers/$coverFile"
         if (book.coverUrl.isNullOrEmpty()) {
-            book.coverUrl = File.separator + relativeCoverUrl
+            book.coverUrl = "/$relativeCoverUrl"
         }
         val coverUrl = Paths.get(book.workRoot(), "storage", relativeCoverUrl).toString()
         if (!File(coverUrl).exists()) {
-            FileUtils.writeBytes(coverUrl, umdBook!!.cover.coverData)
+            val coverData = umdBook?.cover?.coverData
+            if (coverData != null) {
+                try {
+                    FileUtils.writeBytes(coverUrl, coverData)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
         }
     }
 

@@ -191,13 +191,21 @@ class EpubFile(var book: Book) {
 
     fun updateCover() {
         val coverFile = "${MD5Utils.md5Encode16(book.bookUrl)}.jpg"
-        val relativeCoverUrl = Paths.get("assets", "covers", coverFile).toString()
+        // 使用正斜杠，避免 Windows 反斜杠破坏前端 /assets 路径判断
+        val relativeCoverUrl = "assets/covers/$coverFile"
         if (book.coverUrl.isNullOrEmpty()) {
-            book.coverUrl = File.separator + relativeCoverUrl
+            book.coverUrl = "/$relativeCoverUrl"
         }
         val coverUrl = Paths.get(book.workRoot(), "storage", relativeCoverUrl).toString()
         if (!File(coverUrl).exists()) {
-            FileUtils.writeBytes(coverUrl, epubBook!!.coverImage.data)
+            val coverData = epubBook?.coverImage?.data
+            if (coverData != null) {
+                try {
+                    FileUtils.writeBytes(coverUrl, coverData)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
         }
         // 保存 cover
         // val cover = epubBook!!.coverImage?.href

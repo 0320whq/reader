@@ -1177,7 +1177,8 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
                     return returnData.setErrorMsg("上传书籍不存在或路径非法")
                 }
                 val safeDirName = (book.name + "_" + book.author).replace("..", "_").replace("/", "_").replace("\\", "_")
-                val relativeLocalFilePath = Paths.get("storage", "data", userNameSpace, safeDirName, tempFile.name).toString()
+                // 使用正斜杠拼接相对路径，避免 Windows 反斜杠
+                val relativeLocalFilePath = listOf("storage", "data", userNameSpace, safeDirName, tempFile.name).joinToString("/")
                 val localFilePath = getWorkDir(relativeLocalFilePath)
                 logger.info("localFilePath: {}", localFilePath)
                 var localFile = File(localFilePath)
@@ -1208,7 +1209,8 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
                     return returnData.setErrorMsg("本地书仓书籍不存在")
                 }
                 val safeDirName = (book.name + "_" + book.author).replace("..", "_").replace("/", "_").replace("\\", "_")
-                val relativeLocalFilePath = Paths.get("storage", "data", userNameSpace, safeDirName, tempFile.name).toString()
+                // 使用正斜杠拼接相对路径，避免 Windows 反斜杠
+                val relativeLocalFilePath = listOf("storage", "data", userNameSpace, safeDirName, tempFile.name).joinToString("/")
                 book.bookUrl = relativeLocalFilePath
 
                 if (book.isEpub()) {
@@ -1775,18 +1777,19 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
     }
 
     fun extractEpub(book: Book, force: Boolean = false): Boolean {
-        // Sanitize path components to prevent directory traversal in internal paths
-        val safeBookUrl = book.bookUrl.replace("..", "_").replace(File.separator, "_")
-        val epubExtractDir = safeResolveFile(getWorkDir(), "/" + safeBookUrl + File.separator + "index") ?: return false
+        // 使用 book.bookUrl 直接拼接解压目录，路径穿越防护交给 safeResolveFile
+        val extractDirPath = book.bookUrl + "/index"
+        val epubExtractDir = safeResolveFile(getWorkDir(), extractDirPath) ?: return false
         if (force || !epubExtractDir.exists()) {
             epubExtractDir.deleteRecursively()
-            val safeOriginName = book.originName.replace("..", "_").replace(File.separator, "_")
-            var localEpubFile = safeResolveFile(getWorkDir(), "/" + safeOriginName + File.separator + "index.epub") ?: return false
-            if (book.originName.indexOf("localStore") > 0) {
-                // 本地书仓的源文件
-                localEpubFile = safeResolveFile(getWorkDir(), "/" + safeOriginName) ?: return false
+            // 源文件：localStore 书籍用 originName，其余用 book.bookUrl + /index.epub
+            val srcPath = if (book.originName.indexOf("localStore") >= 0) {
+                book.originName
+            } else {
+                book.bookUrl + "/index.epub"
             }
-            if (localEpubFile == null || !localEpubFile.exists()) {
+            val localEpubFile = safeResolveFile(getWorkDir(), srcPath) ?: return false
+            if (!localEpubFile.exists()) {
                 return false
             }
             if (!localEpubFile.unzip(epubExtractDir.toString())) {
@@ -2009,7 +2012,8 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
                     if (ext != "txt" && ext != "epub" && ext != "umd") {
                         return returnData.setErrorMsg("不支持导入" + ext + "格式的书籍文件")
                     }
-                    val book = Book.initLocalBook(path, path, getWorkDir())
+                    val relativePath = toWorkDirRelativePath(path)
+                    val book = Book.initLocalBook(relativePath, relativePath, getWorkDir())
                     val chapters = LocalBook.getChapterList(book)
                     fileList.add(mapOf("book" to book, "chapters" to chapters))
                 }

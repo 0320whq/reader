@@ -105,6 +105,20 @@ fun getWorkDir(vararg subDirFiles: String): String {
     return getWorkDir(getRelativePath(*subDirFiles))
 }
 
+/**
+ * 将绝对路径转为相对于 workDir 的正斜杠路径。
+ * 用于避免 Windows 绝对路径污染 bookUrl。
+ */
+fun toWorkDirRelativePath(absolutePath: String): String {
+    val workDir = getWorkDir()
+    val normalized = absolutePath.replace("\\", "/")
+    return if (normalized.startsWith(workDir.replace("\\", "/"))) {
+        normalized.removePrefix(workDir.replace("\\", "/")).removePrefix("/")
+    } else {
+        normalized
+    }
+}
+
 fun getRelativePath(vararg subDirFiles: String): String {
     val path = StringBuilder("")
     subDirFiles.forEach {
