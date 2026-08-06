@@ -430,4 +430,51 @@ open class BaseController(override val coroutineContext: CoroutineContext): Coro
             null
         }
     }
+
+    /**
+     * 校验 URL 是否为安全的外部地址，防止 SSRF。
+     * 拒绝非 http/https、localhost、内网地址、云元数据地址。
+     */
+    fun isSafeExternalUrl(urlStr: String): Boolean {
+        return try {
+            val parsed = URL(urlStr)
+            val proto = parsed.protocol.lowercase()
+            if (proto != "http" && proto != "https") return false
+            val host = parsed.host.lowercase()
+            if (host == "localhost" || host == "0.0.0.0") return false
+            if (host.startsWith("127.") || host.startsWith("10.")) return false
+            if (host.startsWith("192.168.")) return false
+            if (host.startsWith("169.254.")) return false
+            if (host.startsWith("172.")) {
+                val secondOctet = host.split(".").getOrNull(1)?.toIntOrNull() ?: 0
+                if (secondOctet in 16..31) return false
+            }
+            if (host == "::1" || host == "[::1]") return false
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * 安全将字符串转为 Int，非法值回落到默认值。
+     */
+    fun safeToInt(value: String?, default: Int): Int {
+        return try {
+            value?.toInt() ?: default
+        } catch (e: NumberFormatException) {
+            default
+        }
+    }
+
+    /**
+     * 生成安全的书籍存储 key，防止书名/作者含路径穿越字符。
+     * 与 saveBook/deleteBook 的 safeDirName 规则一致。
+     */
+    fun safeBookKey(name: String?, author: String?): String {
+        return ((name ?: "") + "_" + (author ?: ""))
+            .replace("..", "_")
+            .replace("/", "_")
+            .replace("\\", "_")
+    }
 }

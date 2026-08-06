@@ -35,6 +35,20 @@ private val storageLock = ReentrantLock()
 val gson = GsonBuilder().disableHtmlEscaping().create()
 val prettyGson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
 
+/**
+ * 安全拼接存储文件路径，防止路径穿越。
+ * 确保 target 仍在 storageDir 根目录内。
+ */
+private fun safeStorageFile(storageDir: String, relativePath: String): File? {
+    return try {
+        val root = File(storageDir).canonicalFile
+        val target = File(root, relativePath).canonicalFile
+        if (target == root || target.startsWith(root)) target else null
+    } catch (e: Exception) {
+        null
+    }
+}
+
 var storageFinalPath = ""
 var workDirPath = ""
 var workDirInit = false
@@ -144,7 +158,12 @@ fun saveStorage(vararg name: String, value: Any, pretty: Boolean = false) {
         }
 
         val filename = name.last()
-        val file = File(getRelativePath(storagePath, *name.copyOfRange(0, name.size - 1), "${filename}.json"))
+        val relativePath = getRelativePath(*name.copyOfRange(0, name.size - 1), "${filename}.json")
+        val file = safeStorageFile(storagePath, relativePath)
+        if (file == null) {
+            logger.warn("storage key 疑似路径穿越，已拒绝写入: {}", name.contentToString())
+            return@withLock
+        }
         // val file = File(storagePath + "/${name}.json")
         logger.info("storage key: {} path: {}", name, file.absoluteFile)
 
@@ -168,7 +187,12 @@ fun getStorage(vararg name: String): String?  {
         }
 
         val filename = name.last()
-        val file = File(getRelativePath(storagePath, *name.copyOfRange(0, name.size - 1), "${filename}.json"))
+        val relativePath = getRelativePath(*name.copyOfRange(0, name.size - 1), "${filename}.json")
+        val file = safeStorageFile(storagePath, relativePath)
+        if (file == null) {
+            logger.warn("storage key 疑似路径穿越，已拒绝读取: {}", name.contentToString())
+            return@withLock null
+        }
         logger.info("storage key: {} path: {}", name, file.absoluteFile)
         if (!file.exists()) {
             return@withLock null

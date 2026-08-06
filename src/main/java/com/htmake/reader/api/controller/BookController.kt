@@ -170,6 +170,10 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
             return
         }
         coverUrl = URLDecoder.decode(coverUrl, "UTF-8")
+        if (!isSafeExternalUrl(coverUrl)) {
+            context.response().setStatusCode(404).end()
+            return
+        }
         var ext = getFileExt(coverUrl, "png")
         val md5Encode = MD5Utils.md5Encode(coverUrl).toString()
         var cachePath = getWorkDir("storage", "cache", md5Encode + "." + ext)
@@ -324,7 +328,7 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
         } else {
             // get 请求
             bookUrl = context.queryParam("url").firstOrNull() ?: ""
-            refresh = context.queryParam("refresh").firstOrNull()?.toInt() ?: 0
+            refresh = safeToInt(context.queryParam("refresh").firstOrNull(), 0)
             bookUrl = URLDecoder.decode(bookUrl, "UTF-8")
         }
         if (bookUrl.isNullOrEmpty()) {
@@ -383,7 +387,7 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
         } else {
             // get 请求
             bookUrl = context.queryParam("url").firstOrNull() ?: ""
-            chapterIndex = context.queryParam("index").firstOrNull()?.toInt() ?: -1
+            chapterIndex = safeToInt(context.queryParam("index").firstOrNull(), -1)
             bookUrl = URLDecoder.decode(bookUrl, "UTF-8")
         }
         if (bookUrl.isNullOrEmpty()) {
@@ -433,11 +437,11 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
             // get 请求
             chapterUrl = context.queryParam("chapterUrl").firstOrNull() ?: ""
             bookUrl = context.queryParam("url").firstOrNull() ?: ""
-            chapterIndex = context.queryParam("index").firstOrNull()?.toInt() ?: -1
+            chapterIndex = safeToInt(context.queryParam("index").firstOrNull(), -1)
             bookUrl = URLDecoder.decode(bookUrl, "UTF-8")
             chapterUrl = URLDecoder.decode(chapterUrl, "UTF-8")
-            cache = context.queryParam("cache").firstOrNull()?.toInt() ?: 0
-            refresh = context.queryParam("refresh").firstOrNull()?.toInt() ?: 0
+            cache = safeToInt(context.queryParam("cache").firstOrNull(), 0)
+            refresh = safeToInt(context.queryParam("refresh").firstOrNull(), 0)
         }
         if (bookUrl.isNullOrEmpty()) {
             return returnData.setErrorMsg("请输入书籍链接")
@@ -549,7 +553,7 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
             var chapterCacheFile: File? = null
             if (refresh <= 0 && appConfig.cacheChapterContent) {
                 val md5Encode = MD5Utils.md5Encode(bookInfo.bookUrl).toString()
-                val localCacheDirPath = getWorkDir("storage", "data", userNameSpace, bookInfo.name + "_" + bookInfo.author, md5Encode)
+                val localCacheDirPath = getWorkDir("storage", "data", userNameSpace, safeBookKey(bookInfo.name, bookInfo.author), md5Encode)
                 val localCacheDir = File(localCacheDirPath)
                 if (!localCacheDir.exists()) {
                     localCacheDir.mkdirs()
@@ -599,7 +603,7 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
         } else {
             // get 请求
             ruleFindUrl = context.queryParam("ruleFindUrl").firstOrNull() ?: ""
-            page = context.queryParam("page").firstOrNull()?.toInt() ?: 1
+            page = safeToInt(context.queryParam("page").firstOrNull(), 1)
             ruleFindUrl = URLDecoder.decode(ruleFindUrl, "UTF-8")
         }
 
@@ -624,7 +628,7 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
         } else {
             // get 请求
             key = context.queryParam("key").firstOrNull() ?: ""
-            page = context.queryParam("page").firstOrNull()?.toInt() ?: 1
+            page = safeToInt(context.queryParam("page").firstOrNull(), 1)
         }
         if (key.isNullOrEmpty()) {
             return returnData.setErrorMsg("请输入搜索关键字")
@@ -655,9 +659,9 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
             // get 请求
             key = context.queryParam("key").firstOrNull() ?: ""
             bookSourceGroup = context.queryParam("bookSourceGroup").firstOrNull() ?: ""
-            lastIndex = context.queryParam("lastIndex").firstOrNull()?.toInt() ?: -1
-            searchSize = context.queryParam("searchSize").firstOrNull()?.toInt() ?: 20
-            concurrentCount = context.queryParam("concurrentCount").firstOrNull()?.toInt() ?: 36
+            lastIndex = safeToInt(context.queryParam("lastIndex").firstOrNull(), -1)
+            searchSize = safeToInt(context.queryParam("searchSize").firstOrNull(), 20)
+            concurrentCount = safeToInt(context.queryParam("concurrentCount").firstOrNull(), 36)
         }
         var userNameSpace = getUserNameSpace(context)
         var userBookSourceList = loadBookSourceStringList(userNameSpace, bookSourceGroup)
@@ -734,9 +738,9 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
             // get 请求
             key = context.queryParam("key").firstOrNull() ?: ""
             bookSourceGroup = context.queryParam("bookSourceGroup").firstOrNull() ?: ""
-            lastIndex = context.queryParam("lastIndex").firstOrNull()?.toInt() ?: -1
-            searchSize = context.queryParam("searchSize").firstOrNull()?.toInt() ?: 50
-            concurrentCount = context.queryParam("concurrentCount").firstOrNull()?.toInt() ?: 24
+            lastIndex = safeToInt(context.queryParam("lastIndex").firstOrNull(), -1)
+            searchSize = safeToInt(context.queryParam("searchSize").firstOrNull(), 50)
+            concurrentCount = safeToInt(context.queryParam("concurrentCount").firstOrNull(), 24)
         }
         var userNameSpace = getUserNameSpace(context)
         var userBookSourceList = loadBookSourceStringList(userNameSpace, bookSourceGroup)
@@ -815,8 +819,8 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
         } else {
             // get 请求
             bookUrl = context.queryParam("url").firstOrNull() ?: ""
-            lastIndex = context.queryParam("lastIndex").firstOrNull()?.toInt() ?: -1
-            searchSize = context.queryParam("searchSize").firstOrNull()?.toInt() ?: 5
+            lastIndex = safeToInt(context.queryParam("lastIndex").firstOrNull(), -1)
+            searchSize = safeToInt(context.queryParam("searchSize").firstOrNull(), 5)
             bookSourceGroup = context.queryParam("bookSourceGroup").firstOrNull() ?: ""
             bookUrl = URLDecoder.decode(bookUrl, "UTF-8")
         }
@@ -904,11 +908,11 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
         } else {
             // get 请求
             bookUrl = context.queryParam("url").firstOrNull() ?: ""
-            lastIndex = context.queryParam("lastIndex").firstOrNull()?.toInt() ?: -1
-            searchSize = context.queryParam("searchSize").firstOrNull()?.toInt() ?: 30
+            lastIndex = safeToInt(context.queryParam("lastIndex").firstOrNull(), -1)
+            searchSize = safeToInt(context.queryParam("searchSize").firstOrNull(), 30)
             bookSourceGroup = context.queryParam("bookSourceGroup").firstOrNull() ?: ""
             bookUrl = URLDecoder.decode(bookUrl, "UTF-8")
-            refresh = context.queryParam("refresh").firstOrNull()?.toInt() ?: 0
+            refresh = safeToInt(context.queryParam("refresh").firstOrNull(), 0)
         }
         var userNameSpace = getUserNameSpace(context)
         var userBookSourceList = loadBookSourceStringList(userNameSpace, bookSourceGroup)
@@ -1039,7 +1043,7 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
         } else {
             // get 请求
             bookUrl = context.queryParam("url").firstOrNull() ?: ""
-            refresh = context.queryParam("refresh").firstOrNull()?.toInt() ?: 0
+            refresh = safeToInt(context.queryParam("refresh").firstOrNull(), 0)
             bookUrl = URLDecoder.decode(bookUrl, "UTF-8")
         }
         if (bookUrl.isNullOrEmpty()) {
@@ -1099,7 +1103,7 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
             refresh = context.bodyAsJson.getInteger("refresh", 0)
         } else {
             // get 请求
-            refresh = context.queryParam("refresh").firstOrNull()?.toInt() ?: 0
+            refresh = safeToInt(context.queryParam("refresh").firstOrNull(), 0)
         }
         var bookList = getBookShelfBooks(refresh > 0, getUserNameSpace(context))
         return returnData.setData(bookList)
@@ -1324,7 +1328,7 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
         } else {
             // get 请求
             bookUrl = context.queryParam("bookUrl").firstOrNull() ?: ""
-            groupId = context.queryParam("groupId").firstOrNull()?.toInt() ?: 0
+            groupId = safeToInt(context.queryParam("groupId").firstOrNull(), 0)
             bookUrl = URLDecoder.decode(bookUrl, "UTF-8")
         }
         if (bookUrl.isNullOrEmpty()) {

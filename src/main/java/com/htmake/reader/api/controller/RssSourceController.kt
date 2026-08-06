@@ -231,7 +231,7 @@ class RssSourceController(coroutineContext: CoroutineContext): BaseController(co
         } else {
             // get 请求
             sourceUrl = context.queryParam("sourceUrl").firstOrNull() ?: ""
-            page = context.queryParam("page").firstOrNull()?.toInt() ?: 1
+            page = safeToInt(context.queryParam("page").firstOrNull(), 1)
             sourceUrl = URLDecoder.decode(sourceUrl, "UTF-8")
         }
         if (sourceUrl.isEmpty()) {

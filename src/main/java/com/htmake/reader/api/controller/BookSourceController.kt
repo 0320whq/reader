@@ -217,7 +217,7 @@ class BookSourceController(coroutineContext: CoroutineContext): BaseController(c
             simple = context.bodyAsJson.getInteger("simple", 0)
         } else {
             // get 请求
-            simple = context.queryParam("simple").firstOrNull()?.toInt() ?: 0
+            simple = safeToInt(context.queryParam("simple").firstOrNull(), 0)
         }
         var userNameSpace = getUserNameSpace(context)
         var bookSourceList = getUserBookSourceJson(userNameSpace)
@@ -343,6 +343,11 @@ class BookSourceController(coroutineContext: CoroutineContext): BaseController(c
         }
         if (url.isNullOrEmpty()) {
             context.success(returnData.setErrorMsg("请输入远程书源链接"))
+            return
+        }
+        // SSRF 防护：拒绝内网/本地地址
+        if (!isSafeExternalUrl(url)) {
+            context.success(returnData.setErrorMsg("不支持的URL"))
             return
         }
 
