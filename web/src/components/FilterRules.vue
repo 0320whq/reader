@@ -211,6 +211,64 @@ export default {
   color: #333;
 }
 
+@media screen and (max-width: 640px) {
+  .filter-rules-overlay {
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 4vh;
+  }
+  .filter-rules-panel {
+    width: 96vw;
+    max-width: 96vw;
+    max-height: 92vh;
+  }
+  .panel-header {
+    padding: 12px 14px;
+  }
+  .panel-body {
+    padding: 12px;
+  }
+  .add-form {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .add-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .fr-input {
+    font-size: 12px;
+    padding: 7px 10px;
+  }
+  .fr-select {
+    font-size: 12px;
+    padding: 5px 8px;
+  }
+  .fr-btn-add {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+  .rules-list-section {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .list-header {
+    grid-template-columns: 140px 100px 90px 55px;
+    gap: 6px;
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+  .list-row {
+    grid-template-columns: 140px 100px 90px 55px;
+    gap: 6px;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  .panel-footer {
+    padding: 12px 14px;
+  }
+}
+
 .panel-header {
   display: flex;
   align-items: center;
