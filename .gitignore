@@ -44,3 +44,17 @@ out
 /bin
 /file-uploads
 /reader-assets
+
+# Build artifacts
+build-logs-v*/
+build-v*-logs.zip
+reader-master-updated-*.zip
+reader-custom-*-artifact.zip
+
+# Dumate inbox
+.dumate/
+
+# Temporary push scripts
+github_api_push.py
+github_push.js
+pack.py
