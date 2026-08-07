@@ -215,18 +215,24 @@ export default {
   .filter-rules-overlay {
     align-items: flex-start;
     justify-content: center;
-    padding-top: 4vh;
+    padding-top: 0;
   }
   .filter-rules-panel {
-    width: 96vw;
-    max-width: 96vw;
-    max-height: 92vh;
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
   }
   .panel-header {
-    padding: 12px 14px;
+    padding: 14px 16px;
+    flex-shrink: 0;
   }
   .panel-body {
     padding: 12px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
   }
   .add-form {
     flex-direction: column;
@@ -265,7 +271,8 @@ export default {
     font-size: 12px;
   }
   .panel-footer {
-    padding: 12px 14px;
+    padding: 12px 16px;
+    flex-shrink: 0;
   }
 }
 
