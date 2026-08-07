@@ -193,30 +193,26 @@ class EpubFile(var book: Book) {
         val coverFile = "${MD5Utils.md5Encode16(book.bookUrl)}.jpg"
         // 使用正斜杠，避免 Windows 反斜杠破坏前端 /assets 路径判断
         val relativeCoverUrl = "assets/covers/$coverFile"
-        if (book.coverUrl.isNullOrEmpty()) {
-            book.coverUrl = "/$relativeCoverUrl"
-        }
-        val coverUrl = Paths.get(book.workRoot(), "storage", relativeCoverUrl).toString()
-        if (!File(coverUrl).exists()) {
-            val coverData = epubBook?.coverImage?.data
-            if (coverData != null) {
+        val coverPath = Paths.get(book.workRoot(), "storage", relativeCoverUrl).toString()
+        var coverExists = File(coverPath).exists()
+
+        if (!coverExists) {
+            val coverData = try { epubBook?.coverImage?.data } catch (e: Exception) { null }
+            if (coverData != null && coverData.isNotEmpty()) {
                 try {
-                    FileUtils.writeBytes(coverUrl, coverData)
+                    FileUtils.writeBytes(coverPath, coverData)
+                    coverExists = File(coverPath).exists()   // 以落盘结果为准
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
             }
         }
-        // 保存 cover
-        // val cover = epubBook!!.coverImage?.href
-        // if (cover != null) {
-        //     val epubRootDir = book.getEpubRootDir()
-        //     if (epubRootDir.isEmpty()) {
-        //         book.coverUrl = book.bookUrl.replace("storage/data/", "/epub/") + "/index/" + cover
-        //     } else {
-        //         book.coverUrl = book.bookUrl.replace("storage/data/", "/epub/") + "/index/" + epubRootDir + "/" + cover
-        //     }
-        // }
+
+        if (coverExists) {
+            if (book.coverUrl.isNullOrEmpty()) book.coverUrl = "/$relativeCoverUrl"
+        } else if (book.coverUrl == "/$relativeCoverUrl") {
+            book.coverUrl = ""          // 清理历史遗留的悬空值，让前端走占位图
+        }
     }
 
     fun getChapterListBySpine(): ArrayList<BookChapter> {

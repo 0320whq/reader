@@ -111,19 +111,25 @@ class UmdFile(var book: Book) {
         val coverFile = "${MD5Utils.md5Encode16(book.bookUrl)}.jpg"
         // 使用正斜杠，避免 Windows 反斜杠破坏前端 /assets 路径判断
         val relativeCoverUrl = "assets/covers/$coverFile"
-        if (book.coverUrl.isNullOrEmpty()) {
-            book.coverUrl = "/$relativeCoverUrl"
-        }
-        val coverUrl = Paths.get(book.workRoot(), "storage", relativeCoverUrl).toString()
-        if (!File(coverUrl).exists()) {
+        val coverPath = Paths.get(book.workRoot(), "storage", relativeCoverUrl).toString()
+        var coverExists = File(coverPath).exists()
+
+        if (!coverExists) {
             val coverData = umdBook?.cover?.coverData
-            if (coverData != null) {
+            if (coverData != null && coverData.isNotEmpty()) {
                 try {
-                    FileUtils.writeBytes(coverUrl, coverData)
+                    FileUtils.writeBytes(coverPath, coverData)
+                    coverExists = File(coverPath).exists()   // 以落盘结果为准
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
             }
+        }
+
+        if (coverExists) {
+            if (book.coverUrl.isNullOrEmpty()) book.coverUrl = "/$relativeCoverUrl"
+        } else if (book.coverUrl == "/$relativeCoverUrl") {
+            book.coverUrl = ""          // 清理历史遗留的悬空值，让前端走占位图
         }
     }
 

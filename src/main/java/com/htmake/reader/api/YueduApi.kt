@@ -101,6 +101,7 @@ class YueduApi : RestVerticle() {
         if (!assetsCssFile.exists()) {
             assetsCssFile.writeText("/* 在此处可以编写CSS样式来自定义页面 */");
         }
+        router.route("/assets/*").handler(missingFileGuard(assetsDir, "/assets/"));
         router.route("/assets/*").handler(StaticHandler.create().setAllowRootFileSystemAccess(true).setWebRoot(assetsDir).setDefaultContentEncoding("UTF-8"));
 
         // epub资源
@@ -117,6 +118,7 @@ class YueduApi : RestVerticle() {
             }
             it.next()
         }
+        router.route("/epub/*").handler(missingFileGuard(dataDir, "/epub/"));
         router.route("/epub/*").handler(StaticHandler.create().setAllowRootFileSystemAccess(true).setWebRoot(dataDir).setDefaultContentEncoding("UTF-8"));
 
         // 获取系统信息
@@ -325,6 +327,7 @@ class YueduApi : RestVerticle() {
 
     override fun started() {
         SpringContextUtils.getApplicationContext().publishEvent(SpringEvent(this as java.lang.Object, "READY", ""));
+        warmUpDnsResolver()
     }
 
     override fun onStartError() {
@@ -396,5 +399,58 @@ class YueduApi : RestVerticle() {
                 e.printStackTrace()
             }
         }
+    }
+
+    /**
+     * DEF-01: 静态资源缺失时 Vert.x 3.8 StaticHandler 会回退到 classpath，
+     * 在 Windows 上触发 IllegalArgumentException → 500。
+     * 此守卫在 StaticHandler 之前拦截：文件不存在直接 404，路径穿越也挡掉。
+     */
+    private fun missingFileGuard(rootDir: String, prefix: String): io.vertx.core.Handler<RoutingContext> {
+        return io.vertx.core.Handler { ctx ->
+            val rawPath = ctx.request().path()
+            // 去掉前缀，拿到请求的相对子路径
+            val relPath = if (rawPath.startsWith(prefix)) rawPath.substring(prefix.length) else rawPath
+            // URL 解码
+            val decoded = try { URLDecoder.decode(relPath, "UTF-8") } catch (e: Exception) { relPath }
+            // 路径穿越防护：规范化后必须仍在 rootDir 内
+            val rootCanonical = File(rootDir).canonicalPath
+            val targetFile = File(rootDir, decoded).canonicalFile
+            if (!targetFile.path.startsWith(rootCanonical) || !targetFile.exists()) {
+                ctx.response().setStatusCode(404).end()
+                return@Handler
+            }
+            ctx.next()
+        }
+    }
+
+    /**
+     * DEF-02: 首次外网请求时 Netty DNS 解析器等类的静态初始化会阻塞 event loop ~8s。
+     * 启动时在 worker 线程预热这些类，把代价挪出事件循环。
+     */
+    private fun warmUpDnsResolver() {
+        vertx.executeBlocking<Unit>({ promise ->
+            val t0 = System.currentTimeMillis()
+            try {
+                val cl = this.javaClass.classLoader
+                listOf(
+                    "io.netty.util.internal.MacAddressUtil",
+                    "io.netty.resolver.HostsFileParser",
+                    "io.netty.resolver.HostsFileEntriesResolver",
+                    "io.netty.resolver.dns.DefaultDnsServerAddressStreamProvider",
+                    "io.netty.resolver.dns.DnsNameResolver"
+                ).forEach { name -> try { Class.forName(name, true, cl) } catch (ignore: Throwable) {} }
+                try { java.net.InetAddress.getByName("localhost") } catch (ignore: Throwable) {}
+                // resolveAddress 只存在于 VertxInternal，用反射避免编译期依赖内部 API
+                try {
+                    val m = vertx.javaClass.getMethod("resolveAddress", String::class.java, io.vertx.core.Handler::class.java)
+                    m.invoke(vertx, "localhost", io.vertx.core.Handler<Any> { })
+                } catch (ignore: Throwable) {}
+            } catch (e: Throwable) {
+                logger.warn("DNS resolver warm-up failed (non-fatal): {}", e.message)
+            }
+            logger.info("DNS resolver warm-up finished in {}ms", System.currentTimeMillis() - t0)
+            promise.complete()
+        }, false, null)
     }
 }
