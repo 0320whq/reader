@@ -34,6 +34,7 @@
             placeholder="搜索书籍"
             v-model="search"
             class="search-input"
+            autocomplete="off"
             @keyup.enter.native="searchBook(1)"
           >
             <i slot="prefix" class="el-input__icon el-icon-search"></i>

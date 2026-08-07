@@ -311,6 +311,8 @@ export default {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0;
 }
 
 .add-section {

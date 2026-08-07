@@ -11,13 +11,13 @@
     >
       <el-form :model="loginForm">
         <el-form-item label="用户名">
-          <el-input v-model="loginForm.username" autocomplete="on"></el-input>
+          <el-input v-model="loginForm.username" autocomplete="off"></el-input>
         </el-form-item>
         <el-form-item label="密码">
           <el-input
             type="password"
             v-model="loginForm.password"
-            autocomplete="on"
+            autocomplete="off"
             show-password
             @keyup.enter.native="login"
           ></el-input>
