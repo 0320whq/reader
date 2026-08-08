@@ -306,7 +306,9 @@ export default {
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 9999;
+  /* z-index 必须低于 Element UI MessageBox 默认起始值 2000，
+     否则 this.$confirm() 的遮罩层会覆盖面板 */
+  z-index: 1500;
   display: flex;
   align-items: center;
   justify-content: center;
