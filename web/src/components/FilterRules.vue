@@ -300,6 +300,10 @@ export default {
       this.$message.success("已删除");
     },
     clearAll() {
+      // 临时隐藏过滤规则面板，避免 $confirm 确认框被面板遮挡
+      if (this._overlayEl) {
+        this._overlayEl.style.display = "none";
+      }
       this.$confirm("确定要清空所有过滤规则吗？", "提示", {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
@@ -308,6 +312,11 @@ export default {
         this.$store.commit("setFilterRules", []);
         this.refreshOverlay();
         this.$message.success("已清空");
+      }).catch(() => {
+        // 用户取消，恢复显示
+        if (this._overlayEl) {
+          this._overlayEl.style.display = "";
+        }
       });
     },
     close() {

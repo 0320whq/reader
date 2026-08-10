@@ -171,6 +171,10 @@ export default new Vuex.Store({
       Object.keys(config).forEach(key => {
         state.config[key] = config[key];
       });
+      // 强制触发 Vue 2 Observer 通知，确保 computed 和 watcher 收到更新
+      if (state.config.__ob__) {
+        state.config.__ob__.dep.notify();
+      }
       window.localStorage &&
         window.localStorage.setItem("config", JSON.stringify(state.config));
     },

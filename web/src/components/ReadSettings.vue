@@ -737,10 +737,11 @@ export default {
     },
     showRuleEditor() {
       this.$emit("close");
-      // 等设置面板关闭后再打开过滤规则，避免 z-index 层级冲突
-      this.$nextTick(() => {
+      // 用 setTimeout 等待 el-popover 关闭动画完成（约300ms），
+      // 否则设置面板还在动画中会盖住过滤规则面板
+      setTimeout(() => {
         this.ruleEditorVisible = true;
-      });
+      }, 400);
     }
   }
 };

@@ -97,33 +97,23 @@ const settings = {
     {},
     // 黑体
     {
-      // fontFamily:
-      //   '-apple-system, "Noto Sans", "Helvetica Neue", Helvetica, "Nimbus Sans L", Arial, "Liberation Sans", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Source Han Sans SC", "Source Han Sans CN", "Microsoft YaHei", "Wenquanyi Micro Hei", "WenQuanYi Zen Hei", "ST Heiti", SimHei, "WenQuanYi Zen Hei Sharp", sans-serif'
-      fontFamily: "reader-ht"
+      fontFamily:
+        '"reader-ht", "Noto Sans CJK SC", "Source Han Sans SC", "Source Han Sans CN", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Heiti SC", "WenQuanYi Micro Hei", sans-serif'
     },
     // 楷体
     {
-      // fontFamily:
-      // 'Baskerville, Georgia, "Liberation Serif", "Kaiti SC", STKaiti, "AR PL UKai CN", "AR PL UKai HK", "AR PL UKai TW", "AR PL UKai TW MBE", "AR PL KaitiM GB", KaiTi, KaiTi_GB2312, DFKai-SB, "TW-Kai", serif',
-      fontFamily: "reader-kt"
-      // fontFamily: "STKaiti",
-      // "-fx-font-family": "STKaiti"
+      fontFamily:
+        '"reader-kt", "Kaiti SC", "STKaiti", "KaiTi", "楷体", "AR PL UKai CN", serif'
     },
     // 宋体
     {
-      // fontFamily:
-      // 'Georgia, "Nimbus Roman No9 L", "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", "Source Han Serif CN", STSong, "AR PL New Sung", "AR PL SungtiL GB", NSimSun, SimSun, "TW-Sung", "WenQuanYi Bitmap Song", "AR PL UMing CN", "AR PL UMing HK", "AR PL UMing TW", "AR PL UMing TW MBE", PMingLiU, MingLiU, serif',
-      fontFamily: "reader-st"
-      // fontFamily: "'Source Han Serif CN'",
-      // "-fx-font-family": "'Source Han Serif CN'"
+      fontFamily:
+        '"reader-st", "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", "Source Han Serif CN", "STSong", "SimSun", "宋体", serif'
     },
     // 仿宋
     {
-      // fontFamily:
-      //   'Baskerville, "Times New Roman", "Liberation Serif", STFangsong, FangSong, FangSong_GB2312, "CWTEX-F", serif',
-      fontFamily: "reader-fs"
-      // fontFamily: "STFangsong",
-      // "-fx-font-family": "STFangsong"
+      fontFamily:
+        '"reader-fs", "STFangsong", "FangSong", "FangSong_GB2312", "仿宋", serif'
     }
   ],
   maxReadWidth: Math.floor(window.innerWidth / 160) * 160,
