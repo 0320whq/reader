@@ -410,7 +410,10 @@ export default {
     if (this.speechAvalable) {
       this.fetchVoiceList();
       if (window.speechSynthesis.onvoiceschanged !== undefined) {
-        window.speechSynthesis.addEventListener("voiceschanged", this.fetchVoiceList);
+        window.speechSynthesis.addEventListener(
+          "voiceschanged",
+          this.fetchVoiceList
+        );
       }
     }
     window.addEventListener("unload", this.saveReadingPosition);
@@ -462,7 +465,10 @@ export default {
     this.releaseWakeLockFn && this.releaseWakeLockFn();
     this.$Lazyload.$off("loaded", this.lazyloadHandler);
     if (window.speechSynthesis) {
-      window.speechSynthesis.removeEventListener("voiceschanged", this.fetchVoiceList);
+      window.speechSynthesis.removeEventListener(
+        "voiceschanged",
+        this.fetchVoiceList
+      );
     }
   },
   watch: {
@@ -1902,7 +1908,11 @@ export default {
     },
     getPrevParagraph() {
       const current = this.getCurrentParagraph();
-      if (!current || !this.$refs.bookContentRef || !this.$refs.bookContentRef.$el) {
+      if (
+        !current ||
+        !this.$refs.bookContentRef ||
+        !this.$refs.bookContentRef.$el
+      ) {
         return null;
       }
       const list = this.$refs.bookContentRef.$el.querySelectorAll("h3,p");
@@ -1915,7 +1925,11 @@ export default {
     },
     getNextParagraph() {
       const current = this.getCurrentParagraph();
-      if (!current || !this.$refs.bookContentRef || !this.$refs.bookContentRef.$el) {
+      if (
+        !current ||
+        !this.$refs.bookContentRef ||
+        !this.$refs.bookContentRef.$el
+      ) {
         return null;
       }
       const list = this.$refs.bookContentRef.$el.querySelectorAll("h3,p");

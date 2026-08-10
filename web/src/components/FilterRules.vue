@@ -79,7 +79,7 @@ export default {
       div.className = "filter-rules-overlay" + (this.isNight ? " night" : "");
       div.innerHTML = this.getPanelHTML();
       // 绑定事件
-      div.addEventListener("click", (e) => {
+      div.addEventListener("click", e => {
         if (e.target === div) this.close();
       });
       // 绑定按钮事件
@@ -103,8 +103,8 @@ export default {
 
       // 绑定输入框 enter
       const inputs = div.querySelectorAll(".fr-input");
-      inputs.forEach((input) => {
-        input.addEventListener("keyup", (e) => {
+      inputs.forEach(input => {
+        input.addEventListener("keyup", e => {
           if (e.key === "Enter") this.addRule();
         });
       });
@@ -120,10 +120,12 @@ export default {
       return div;
     },
     getPanelHTML() {
-      const scopeHint = this.newRule.scopeType === "book"
-        ? (this.scopeBookName || "未打开书籍")
-        : "";
-      const scopeDisplay = this.newRule.scopeType === "book" ? "" : "display:none";
+      const scopeHint =
+        this.newRule.scopeType === "book"
+          ? this.scopeBookName || "未打开书籍"
+          : "";
+      const scopeDisplay =
+        this.newRule.scopeType === "book" ? "" : "display:none";
 
       let rulesHTML = "";
       if (this.filterRules.length > 0) {
@@ -135,16 +137,30 @@ export default {
               <span class="lh-scope">适用范围</span>
               <span class="lh-action">操作</span>
             </div>
-            ${this.filterRules.map((rule, index) => `
+            ${this.filterRules
+              .map(
+                (rule, index) => `
               <div class="list-row" data-index="${index}">
-                <span class="lr-pattern" title="${this.escapeHtml(rule.pattern)}">${this.escapeHtml(rule.pattern)}</span>
-                <span class="lr-replacement" title="${this.escapeHtml(rule.replacement || "")}">${rule.replacement ? this.escapeHtml(rule.replacement) : "（删除）"}</span>
-                <span class="lr-scope" title="${this.escapeHtml(rule.scope || "")}">${this.formatScope(rule.scope)}</span>
+                <span class="lr-pattern" title="${this.escapeHtml(
+                  rule.pattern
+                )}">${this.escapeHtml(rule.pattern)}</span>
+                <span class="lr-replacement" title="${this.escapeHtml(
+                  rule.replacement || ""
+                )}">${
+                  rule.replacement
+                    ? this.escapeHtml(rule.replacement)
+                    : "（删除）"
+                }</span>
+                <span class="lr-scope" title="${this.escapeHtml(
+                  rule.scope || ""
+                )}">${this.formatScope(rule.scope)}</span>
                 <span class="lr-action">
                   <button class="fr-btn fr-btn-del">删除</button>
                 </span>
               </div>
-            `).join("")}
+            `
+              )
+              .join("")}
           </div>
         `;
       } else {
@@ -167,23 +183,37 @@ export default {
             <div class="add-section">
               <div class="add-title">添加新规则</div>
               <div class="add-form">
-                <input class="fr-input fr-input-pattern" placeholder="要过滤的关键词（支持正则）" value="${this.escapeHtml(this.newRule.pattern)}" />
-                <input class="fr-input fr-input-replacement" placeholder="替换为（留空则删除该文本）" value="${this.escapeHtml(this.newRule.replacement)}" />
+                <input class="fr-input fr-input-pattern" placeholder="要过滤的关键词（支持正则）" value="${this.escapeHtml(
+                  this.newRule.pattern
+                )}" />
+                <input class="fr-input fr-input-replacement" placeholder="替换为（留空则删除该文本）" value="${this.escapeHtml(
+                  this.newRule.replacement
+                )}" />
               </div>
               <div class="add-row">
                 <label class="fr-label">适用范围：</label>
                 <select class="fr-select">
-                  <option value="book" ${this.newRule.scopeType === "book" ? "selected" : ""}>当前书籍</option>
-                  <option value="all" ${this.newRule.scopeType === "all" ? "selected" : ""}>所有书籍</option>
+                  <option value="book" ${
+                    this.newRule.scopeType === "book" ? "selected" : ""
+                  }>当前书籍</option>
+                  <option value="all" ${
+                    this.newRule.scopeType === "all" ? "selected" : ""
+                  }>所有书籍</option>
                 </select>
-                <span class="scope-hint" style="${scopeDisplay}">${this.escapeHtml(scopeHint)}</span>
+                <span class="scope-hint" style="${scopeDisplay}">${this.escapeHtml(
+        scopeHint
+      )}</span>
               </div>
               <button class="fr-btn fr-btn-add">添加规则</button>
             </div>
             ${rulesHTML}
           </div>
           <div class="panel-footer">
-            ${this.filterRules.length > 0 ? '<button class="fr-btn fr-btn-clear">清空全部</button>' : ""}
+            ${
+              this.filterRules.length > 0
+                ? '<button class="fr-btn fr-btn-clear">清空全部</button>'
+                : ""
+            }
             <button class="fr-btn fr-btn-done">完成</button>
           </div>
         </div>
@@ -224,7 +254,9 @@ export default {
       // 从 DOM 读取当前输入值
       if (this._overlayEl) {
         const patternInput = this._overlayEl.querySelector(".fr-input-pattern");
-        const replacementInput = this._overlayEl.querySelector(".fr-input-replacement");
+        const replacementInput = this._overlayEl.querySelector(
+          ".fr-input-replacement"
+        );
         const select = this._overlayEl.querySelector(".fr-select");
         if (patternInput) this.newRule.pattern = patternInput.value;
         if (replacementInput) this.newRule.replacement = replacementInput.value;

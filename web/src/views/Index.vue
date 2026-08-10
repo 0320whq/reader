@@ -2292,7 +2292,9 @@ export default {
           })
         : [];
       if (val && hasFiltered) {
-        this.$message.info("已全选所有书源，部分书源包含 JavaScript 或 WebView");
+        this.$message.info(
+          "已全选所有书源，部分书源包含 JavaScript 或 WebView"
+        );
       }
       this.isIndeterminate = false;
     },

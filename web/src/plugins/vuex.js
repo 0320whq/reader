@@ -167,16 +167,19 @@ export default new Vuex.Store({
       } else if (config.theme === settings.defaultNightTheme) {
         config.themeType = "night";
       }
-      state.config = config;
+      // 逐个属性赋值触发 Vue 2 setter，确保响应式更新
+      Object.keys(config).forEach(key => {
+        state.config[key] = config[key];
+      });
       window.localStorage &&
-        window.localStorage.setItem("config", JSON.stringify(config));
+        window.localStorage.setItem("config", JSON.stringify(state.config));
     },
     setMiniInterface(state, mini) {
-      if (state.config.pageMode === "自适应") {
-        state.miniInterface = mini;
-      } else {
-        state.miniInterface = true;
-      }
+      Vue.set(
+        state,
+        "miniInterface",
+        state.config.pageMode === "自适应" ? mini : true
+      );
     },
     setWindowSize(state, size) {
       state.windowSize = size;
@@ -288,9 +291,19 @@ export default new Vuex.Store({
       if (config.theme !== "custom") {
         config.theme = parseInt(config.theme);
       }
-      state.config = config;
+      // DEF-08: 当手动切主题时禁用 autoTheme，防止 matchMedia 覆盖
+      if (
+        window.localStorage &&
+        window.localStorage.getItem("themeManualOverride") === "true"
+      ) {
+        config.autoTheme = false;
+      }
+      // 逐个属性赋值触发 Vue 2 setter
+      Object.keys(config).forEach(key => {
+        state.config[key] = config[key];
+      });
       window.localStorage &&
-        window.localStorage.setItem("config", JSON.stringify(config));
+        window.localStorage.setItem("config", JSON.stringify(state.config));
     },
     setSpeechVoiceConfig(state, voiceConfig) {
       state.speechVoiceConfig = voiceConfig;
