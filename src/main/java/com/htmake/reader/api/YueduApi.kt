@@ -336,11 +336,35 @@ class YueduApi : RestVerticle() {
 
     override fun onHandlerError(ctx: RoutingContext, error: Exception) {
         val returnData = ReturnData()
+        val friendlyMsg = friendlyErrorMsg(error)
         logger.error("onHandlerError: ", error)
         if (!ctx.response().headWritten()) {
-            ctx.success(returnData.setErrorMsg(error.toString()))
+            ctx.success(returnData.setErrorMsg(friendlyMsg))
         } else {
-            ctx.response().end(error.toString())
+            ctx.response().end(friendlyMsg)
+        }
+    }
+
+    /**
+     * DEF-07: 将内部技术错误转换为用户友好的提示语，
+     * 不暴露堆栈和路径细节。NoStackTraceException 保持原样。
+     */
+    private fun friendlyErrorMsg(error: Throwable): String {
+        // 已经设计为轻量异常的，保持原消息
+        if (error is io.legado.app.exception.NoStackTraceException) {
+            return error.message ?: "操作失败"
+        }
+        // 常见异常映射为用户友好提示
+        val msg = error.message ?: ""
+        return when {
+            error is java.io.FileNotFoundException || msg.contains("No such file") -> "文件不存在或已被删除"
+            error is java.nio.file.AccessDeniedException || msg.contains("Permission denied") -> "权限不足，无法访问"
+            error is java.net.UnknownHostException || msg.contains("UnknownHost") -> "网络连接失败，请检查服务器网络"
+            error is java.net.SocketTimeoutException || msg.contains("timed out") -> "请求超时，请稍后重试"
+            error is java.lang.IllegalArgumentException -> "请求参数有误"
+            error is java.io.IOException && msg.contains("No space") -> "磁盘空间不足"
+            msg.contains("Illegal character") && msg.contains(":") -> "路径包含非法字符"
+            else -> error.message ?: "操作失败"
         }
     }
 

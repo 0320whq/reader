@@ -18,11 +18,21 @@ class UmdFile(var book: Book) {
         private fun getUFile(book: Book): UmdFile {
 
             if (uFile == null || uFile?.book?.bookUrl != book.bookUrl) {
+                release() // DEF-06: 先释放旧资源
                 uFile = UmdFile(book)
                 return uFile!!
             }
             uFile?.book = book
             return uFile!!
+        }
+
+        /**
+         * DEF-06: 主动释放 umd 占用的资源。
+         */
+        @Synchronized
+        fun release() {
+            uFile?.closeQuietly()
+            uFile = null
         }
 
         @Synchronized
@@ -62,6 +72,14 @@ class UmdFile(var book: Book) {
             field = readUmd()
             return field
         }
+
+    /**
+     * DEF-06: 安全清理 umd 资源。
+     */
+    private fun closeQuietly() {
+        // UmdBook 无显式 close()，置空让 GC 回收 InputStream
+        umdBook = null
+    }
 
 
     init {

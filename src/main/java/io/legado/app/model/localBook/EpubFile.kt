@@ -24,13 +24,21 @@ class EpubFile(var book: Book) {
         @Synchronized
         private fun getEFile(book: Book): EpubFile {
             if (eFile == null || eFile?.book?.bookUrl != book.bookUrl) {
+                release() // DEF-06: 先释放旧资源
                 eFile = EpubFile(book)
-                //对于Epub文件默认不启用替换
-                // book.setUseReplaceRule(false)
                 return eFile!!
             }
             eFile?.book = book
             return eFile!!
+        }
+
+        /**
+         * DEF-06: 主动释放 epub 占用的 ZipFile 句柄，防止长期运行后文件句柄耗尽。
+         */
+        @Synchronized
+        fun release() {
+            eFile?.closeQuietly()
+            eFile = null
         }
 
         @Synchronized
@@ -69,6 +77,18 @@ class EpubFile(var book: Book) {
             field = readEpub()
             return field
         }
+
+    /**
+     * DEF-06: 安全关闭 ZipFile 并清理内存中的 resources。
+     */
+    private fun closeQuietly() {
+        try {
+            epubBook?.resources?.closeAll()
+        } catch (e: Exception) { e.printStackTrace() }
+        try {
+            epubBook?.close()
+        } catch (e: Exception) { e.printStackTrace() }
+    }
 
     init {
         try {

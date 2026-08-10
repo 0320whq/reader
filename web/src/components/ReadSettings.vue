@@ -435,51 +435,53 @@ export default {
   },
   watch: {
     fontColor(color) {
-      let config = this.config;
+      let config = { ...this.config };
       config.fontColor = color;
-      this.$store.commit("setConfig", { ...config });
+      this.$store.commit("setConfig", config);
     },
     bodyColor(color) {
-      let config = this.config;
+      let config = { ...this.config };
       config.bodyColor = color;
-      this.$store.commit("setConfig", { ...config });
+      this.$store.commit("setConfig", config);
     },
     popupColor(color) {
-      let config = this.config;
+      let config = { ...this.config };
       config.popupColor = color;
-      this.$store.commit("setConfig", { ...config });
+      this.$store.commit("setConfig", config);
     },
     contentColor(color) {
-      let config = this.config;
+      let config = { ...this.config };
       config.contentColor = color;
-      this.$store.commit("setConfig", { ...config });
+      this.$store.commit("setConfig", config);
     }
   },
   methods: {
     setTheme(theme) {
-      let config = this.config;
+      let config = { ...this.config };
       config.theme = theme;
+      config.autoTheme = false; // DEF-08: 手动选主题时禁用自动跟随
       this.$store.commit("setConfig", config);
+      window.localStorage && window.localStorage.setItem("themeManualOverride", "true");
     },
     setAutoTheme() {
-      let config = this.config;
+      let config = { ...this.config };
       config.autoTheme = !config.autoTheme;
       this.$store.commit("setConfig", config);
     },
     setFont(font) {
-      let config = this.config;
+      let config = { ...this.config };
       config.font = font;
       this.$store.commit("setConfig", config);
     },
     setReadMethod(method) {
       this.$emit("readMethodChange");
-      let config = this.config;
+      let config = { ...this.config };
       config.readMethod = method;
       this.$store.commit("setConfig", config);
     },
     setPageMode(mode) {
       this.$emit("pageModeChange");
-      let config = this.config;
+      let config = { ...this.config };
       config.pageMode = mode;
       this.$store.commit("setConfig", config);
       if (mode === "手机模式") {
@@ -549,44 +551,44 @@ export default {
       }
     },
     setThemeType(type) {
-      let config = this.config;
+      let config = { ...this.config };
       config.themeType = type;
       this.$store.commit("setConfig", config);
     },
     setClickMethod(method) {
-      let config = this.config;
+      let config = { ...this.config };
       config.clickMethod = method;
       this.$store.commit("setConfig", config);
     },
     setSelectionAction(action) {
-      let config = this.config;
+      let config = { ...this.config };
       config.selectionAction = action;
       this.$store.commit("setConfig", config);
     },
     moreFontSize() {
-      let config = this.config;
+      let config = { ...this.config };
       if (config.fontSize < 60) config.fontSize += 1;
       this.$store.commit("setConfig", config);
     },
     lessFontSize() {
-      let config = this.config;
+      let config = { ...this.config };
       if (config.fontSize > 10) config.fontSize -= 1;
       this.$store.commit("setConfig", config);
     },
     moreFontWeight() {
-      let config = this.config;
+      let config = { ...this.config };
       config.fontWeight = config.fontWeight || settings.config.fontWeight;
       if (config.fontWeight < 900) config.fontWeight += 100;
       this.$store.commit("setConfig", config);
     },
     lessFontWeight() {
-      let config = this.config;
+      let config = { ...this.config };
       config.fontWeight = config.fontWeight || settings.config.fontWeight;
       if (config.fontWeight > 100) config.fontWeight -= 100;
       this.$store.commit("setConfig", config);
     },
     moreAnimateMSTime() {
-      let config = this.config;
+      let config = { ...this.config };
       config.animateMSTime =
         typeof config.animateMSTime !== "undefined"
           ? config.animateMSTime
@@ -595,7 +597,7 @@ export default {
       this.$store.commit("setConfig", config);
     },
     lessAnimateMSTime() {
-      let config = this.config;
+      let config = { ...this.config };
       config.animateMSTime =
         typeof config.animateMSTime !== "undefined"
           ? config.animateMSTime
@@ -604,7 +606,7 @@ export default {
       this.$store.commit("setConfig", config);
     },
     moreAutoReadingLineTime() {
-      let config = this.config;
+      let config = { ...this.config };
       config.autoReadingLineTime =
         typeof config.autoReadingLineTime !== "undefined"
           ? config.autoReadingLineTime
@@ -613,7 +615,7 @@ export default {
       this.$store.commit("setConfig", config);
     },
     lessAutoReadingLineTime() {
-      let config = this.config;
+      let config = { ...this.config };
       config.autoReadingLineTime =
         typeof config.autoReadingLineTime !== "undefined"
           ? config.autoReadingLineTime
@@ -622,21 +624,21 @@ export default {
       this.$store.commit("setConfig", config);
     },
     moreLineHeight() {
-      let config = this.config;
+      let config = { ...this.config };
       config.lineHeight = config.lineHeight || settings.config.lineHeight;
       if (config.lineHeight < 3) config.lineHeight += 0.2;
       config.lineHeight = +config.lineHeight.toFixed(1);
       this.$store.commit("setConfig", config);
     },
     lessLineHeight() {
-      let config = this.config;
+      let config = { ...this.config };
       config.lineHeight = config.lineHeight || settings.config.lineHeight;
       if (config.lineHeight > 1) config.lineHeight -= 0.2;
       config.lineHeight = +config.lineHeight.toFixed(1);
       this.$store.commit("setConfig", config);
     },
     moreParagraphSpace() {
-      let config = this.config;
+      let config = { ...this.config };
       config.paragraphSpace =
         config.paragraphSpace ?? settings.config.paragraphSpace;
       if (config.paragraphSpace < 3) config.paragraphSpace += 0.2;
@@ -644,7 +646,7 @@ export default {
       this.$store.commit("setConfig", config);
     },
     lessParagraphSpace() {
-      let config = this.config;
+      let config = { ...this.config };
       config.paragraphSpace =
         config.paragraphSpace ?? settings.config.paragraphSpace;
       if (config.paragraphSpace > 0) config.paragraphSpace -= 0.2;
@@ -652,12 +654,17 @@ export default {
       this.$store.commit("setConfig", config);
     },
     moreReadWidth() {
-      let config = this.config;
+      let config = { ...this.config };
       if (config.readWidth < settings.maxReadWidth) config.readWidth += 160;
       this.$store.commit("setConfig", config);
     },
     lessReadWidth() {
-      let config = this.config;
+      let config = { ...this.config };
+      if (config.readWidth > 160) config.readWidth -= 160;
+      this.$store.commit("setConfig", config);
+    },
+    lessReadWidth() {
+      let config = { ...this.config };
       if (config.readWidth > settings.minReadWidth) config.readWidth -= 160;
       this.$store.commit("setConfig", config);
     },
@@ -665,13 +672,13 @@ export default {
       return this.api.replace(/\/reader3\/?/, "") + src;
     },
     setBGImg(src) {
-      let config = this.config;
+      let config = { ...this.config };
       if (config.contentBGImg === src) {
         delete config.contentBGImg;
       } else {
         config.contentBGImg = src;
       }
-      this.$store.commit("setConfig", { ...config });
+      this.$store.commit("setConfig", config);
     },
     uploadBGFile() {
       this.$refs.bgFileRef.dispatchEvent(new MouseEvent("click"));
@@ -691,13 +698,10 @@ export default {
               this.$message.error("上传文件失败");
               return;
             }
-            let config = this.config;
-            config.customBGImgList = config.customBGImgList || [];
-            if (!config.customBGImgList.includes(res.data.data[0])) {
-              config.customBGImgList.push(res.data.data[0]);
-            }
+            let config = { ...this.config };
+            config.customBGImgList = (config.customBGImgList || []).concat(res.data.data[0]);
             config.contentBGImg = res.data.data[0];
-            this.$store.commit("setConfig", { ...config });
+            this.$store.commit("setConfig", config);
           }
         },
         error => {
@@ -711,16 +715,12 @@ export default {
       }).then(
         res => {
           if (res.data.isSuccess) {
-            let config = this.config;
-            config.customBGImgList = config.customBGImgList || [];
-            var index = config.customBGImgList.indexOf(src);
-            if (index != -1) {
-              config.customBGImgList.splice(index, 1);
-            }
+            let config = { ...this.config };
+            config.customBGImgList = (config.customBGImgList || []).filter(item => item !== src);
             if (config.contentBGImg === src) {
               config.contentBGImg = this.builtinBG[0].src;
             }
-            this.$store.commit("setConfig", { ...config });
+            this.$store.commit("setConfig", config);
           }
         },
         error => {
