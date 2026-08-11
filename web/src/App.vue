@@ -396,17 +396,7 @@ export default {
               // connected to backend, auto-restore config from server
               this.autoRestoreConfig();
             }
-  },
-  beforeDestroy() {
-    // 清理事件监听
-    const darkModeMedia = window.matchMedia("(prefers-color-scheme: dark)");
-    if (darkModeMedia.removeEventListener) {
-      darkModeMedia.removeEventListener("change", this._darkModeListener);
-    } else if (darkModeMedia.removeListener) {
-      darkModeMedia.removeListener(this._darkModeListener);
-    }
-    document.removeEventListener("visibilitychange", this._visibilityListener);
-  },
+          },
           error => {
             if (retryCount < maxRetries) {
               retryCount++;
@@ -531,6 +521,16 @@ export default {
     closeViewer() {
       this.$store.commit("setPreviewImgList", false);
     }
+  },
+  beforeDestroy() {
+    // 清理事件监听
+    const darkModeMedia = window.matchMedia("(prefers-color-scheme: dark)");
+    if (darkModeMedia.removeEventListener) {
+      darkModeMedia.removeEventListener("change", this._darkModeListener);
+    } else if (darkModeMedia.removeListener) {
+      darkModeMedia.removeListener(this._darkModeListener);
+    }
+    document.removeEventListener("visibilitychange", this._visibilityListener);
   }
 };
 </script>
