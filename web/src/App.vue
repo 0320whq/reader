@@ -204,15 +204,29 @@ export default {
     }
   },
   created() {
-    window
-      .matchMedia("(prefers-color-scheme: dark)")
-      .addEventListener("change", () => {
-        this.autoSetTheme(this.autoTheme);
-      });
+    // 使用 addEventListener 监听系统主题变化
+    const darkModeMedia = window.matchMedia("(prefers-color-scheme: dark)");
+    this._darkModeListener = () => {
+      this.autoSetTheme(this.autoTheme);
+    };
+    // 兼容旧版 Safari 的 addListener
+    if (darkModeMedia.addEventListener) {
+      darkModeMedia.addEventListener("change", this._darkModeListener);
+    } else if (darkModeMedia.addListener) {
+      darkModeMedia.addListener(this._darkModeListener);
+    }
     this.autoSetTheme(this.autoTheme);
 
     this.getUserInfo();
     this.loadTxtTocRules();
+
+    // 移动端：从后台切回前台时检测主题
+    this._visibilityListener = () => {
+      if (!document.hidden) {
+        this.autoSetTheme(this.autoTheme);
+      }
+    };
+    document.addEventListener("visibilitychange", this._visibilityListener);
   },
   beforeMount() {
     this.setTheme(this.isNight);
@@ -382,7 +396,17 @@ export default {
               // connected to backend, auto-restore config from server
               this.autoRestoreConfig();
             }
-          },
+  },
+  beforeDestroy() {
+    // 清理事件监听
+    const darkModeMedia = window.matchMedia("(prefers-color-scheme: dark)");
+    if (darkModeMedia.removeEventListener) {
+      darkModeMedia.removeEventListener("change", this._darkModeListener);
+    } else if (darkModeMedia.removeListener) {
+      darkModeMedia.removeListener(this._darkModeListener);
+    }
+    document.removeEventListener("visibilitychange", this._visibilityListener);
+  },
           error => {
             if (retryCount < maxRetries) {
               retryCount++;

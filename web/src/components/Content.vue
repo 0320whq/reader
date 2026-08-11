@@ -105,12 +105,14 @@ export default {
       );
     },
     containerStyle() {
+      const isNight = this.$store.getters.isNight;
+      const fontColor = isNight
+        ? (this.$store.getters.config.nightFontColor || "#666")
+        : (this.$store.getters.config.fontColor || "#262626");
       return {
         fontSize: this.$store.getters.config.fontSize + "px",
         fontWeight: this.$store.getters.config.fontWeight || undefined,
-        color:
-          this.$store.getters.config.fontColor ||
-          (this.$store.getters.isNight ? "#666" : "#262626"),
+        color: fontColor,
         ...this.$store.getters.currentFontFamily,
         ...(this.$store.getters.config.contentCSS || {})
       };

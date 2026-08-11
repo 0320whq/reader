@@ -136,6 +136,7 @@
               :key="index"
               :class="{ selected: selectedFont == index }"
               @click="setFont(index)"
+              @touchstart.prevent="setFont(index)"
               >{{ font }}</span
             >
           </div>
@@ -191,6 +192,10 @@
         <li>
           <span class="setting-item-title font-color-title">字体颜色</span>
           <el-color-picker v-model="fontColor"></el-color-picker>
+        </li>
+        <li v-if="$store.getters.isNight">
+          <span class="setting-item-title font-color-title">夜间字体颜色</span>
+          <el-color-picker v-model="nightFontColor"></el-color-picker>
         </li>
         <li>
           <span class="setting-item-title">页面模式</span>
@@ -332,6 +337,8 @@ export default {
       fontColor:
         this.$store.state.config.fontColor ||
         (!this.$store.getters.isNight ? "#262626" : "#666666"),
+      nightFontColor:
+        this.$store.state.config.nightFontColor || "#666666",
       bodyColor: this.$store.state.config.bodyColor || "#eadfca",
       contentColor: this.$store.state.config.contentColor || "#ede7da",
       popupColor: this.$store.state.config.popupColor || "#ede7da",
@@ -437,6 +444,11 @@ export default {
     fontColor(color) {
       let config = { ...this.config };
       config.fontColor = color;
+      this.$store.commit("setConfig", config);
+    },
+    nightFontColor(color) {
+      let config = { ...this.config };
+      config.nightFontColor = color;
       this.$store.commit("setConfig", config);
     },
     bodyColor(color) {
@@ -737,11 +749,21 @@ export default {
     },
     showRuleEditor() {
       this.$emit("close");
-      // 用 setTimeout 等待 el-popover 关闭动画完成（约300ms），
-      // 否则设置面板还在动画中会盖住过滤规则面板
+      // 移动端 popover 是全屏覆盖，关闭动画可能更长，且 z-index 始终高于 FilterRules。
+      // 策略：在 miniInterface 模式下，等 popover 完全从 DOM 移除后再打开 FilterRules。
+      const delay = this.$store.state.miniInterface ? 600 : 400;
       setTimeout(() => {
+        // 移动端额外检查：若仍有残留 popper 元素，强制移除
+        if (this.$store.state.miniInterface) {
+          document.querySelectorAll('.el-popover.popper-component').forEach(el => {
+            if (el.style.display !== 'none') {
+              el.style.display = 'none';
+              setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 100);
+            }
+          });
+        }
         this.ruleEditorVisible = true;
-      }, 400);
+      }, delay);
     }
   }
 };

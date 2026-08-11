@@ -14,7 +14,7 @@
     <div class="source-container table-container">
       <el-table
         :data="localFileList"
-        :height="dialogContentHeight"
+        :height="$store.state.miniInterface ? null : dialogContentHeight"
         @selection-change="localFileSelection = $event"
       >
         <el-table-column

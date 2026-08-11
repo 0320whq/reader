@@ -416,7 +416,17 @@ export default {
         );
       }
     }
-    window.addEventListener("unload", this.saveReadingPosition);
+    // 监听页面关闭/隐藏事件保存阅读进度
+    // 同时使用 unload、pagehide（iOS Safari）和 visibilitychange 确保移动端可靠触发
+    this._savePositionOnUnload = () => this.saveReadingPosition();
+    window.addEventListener("unload", this._savePositionOnUnload);
+    window.addEventListener("pagehide", this._savePositionOnUnload);
+    this._savePositionOnVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        this.saveReadingPosition();
+      }
+    };
+    document.addEventListener("visibilitychange", this._savePositionOnVisibilityChange);
   },
   activated() {
     this.init();
@@ -461,6 +471,14 @@ export default {
     this.timer && clearInterval(this.timer);
     window.removeEventListener("keydown", this.keydownHandler);
     window.removeEventListener("scroll", this.scrollHandler);
+    // 清理阅读进度保存的监听器
+    if (this._savePositionOnUnload) {
+      window.removeEventListener("unload", this._savePositionOnUnload);
+      window.removeEventListener("pagehide", this._savePositionOnUnload);
+    }
+    if (this._savePositionOnVisibilityChange) {
+      document.removeEventListener("visibilitychange", this._savePositionOnVisibilityChange);
+    }
     this.unwatchFn && this.unwatchFn();
     this.releaseWakeLockFn && this.releaseWakeLockFn();
     this.$Lazyload.$off("loaded", this.lazyloadHandler);

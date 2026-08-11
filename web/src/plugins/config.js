@@ -40,6 +40,8 @@ const settings = {
     lineHeight: 1.8, // 行高
     paragraphSpace: 0.2, // 段间距
     autoTheme: true, // 自动切换主题
+    fontColor: "",
+    nightFontColor: "",
     selectionAction: "过滤弹窗",
     pageMode: "自适应",
     pageType: "正常",
@@ -124,7 +126,8 @@ export const errorTypeList = [
   "ConnectException: Failed to connect",
   "SocketException: Connection reset",
   "SSLHandshakeException",
-  "responseCode: 307",
+  // 307 是重定向，不代表书源失效，不应判定为失效书源
+  // "responseCode: 307",
   "responseCode: 400",
   "responseCode: 403",
   "responseCode: 404",
