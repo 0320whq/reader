@@ -56,7 +56,10 @@ jobs:
         run: |
           chmod +x ./gradlew
           mv ./web/dist ./src/main/resources/web
+          # 服务端 jar 不需要 JavaFX 桌面入口；保留原文件，编译时临时移开
+          mv src/main/java/com/htmake/reader/ReaderUIApplication.kt src/main/java/com/htmake/reader/ReaderUIApplication.kt.back
           ./gradlew -b cli.gradle assemble --no-daemon --info
+          mv src/main/java/com/htmake/reader/ReaderUIApplication.kt.back src/main/java/com/htmake/reader/ReaderUIApplication.kt
           mv ./build/libs/*.jar ./reader.jar
 
       # ---- 3. 构建并推送镜像到 GHCR ----
