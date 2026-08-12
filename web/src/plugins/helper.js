@@ -75,7 +75,8 @@ export const LimitResquest = function(limit, process) {
 export const networkFirstRequest = async function(
   requestFunc,
   cacheKey,
-  forceCache
+  forceCache,
+  onUpdate
 ) {
   cacheKey = "localCache@" + cacheKey;
   const useCache = forceCache || !window.serviceWorkerReady;
@@ -120,6 +121,16 @@ export const networkFirstRequest = async function(
         .then(res => {
           if (res && res.data && res.data.isSuccess) {
             writeCache(res.data);
+            // 后台拿到最新数据后回调调用方刷新界面。
+            // 否则界面会一直停留在旧缓存上（表现为：打开显示旧的阅读进度，
+            // 必须手动点刷新才会显示真实进度）。
+            if (typeof onUpdate === "function") {
+              try {
+                onUpdate(res.data);
+              } catch (e) {
+                //
+              }
+            }
           }
         })
         .catch(() => {});

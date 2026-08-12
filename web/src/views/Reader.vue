@@ -990,14 +990,27 @@ export default {
         }, 1000);
         return;
       }
+      // 与目录请求并行发起「最新进度」请求，避免给打开书籍增加额外等待。
+      // 书架数据走的是 stale-while-revalidate 缓存，首屏拿到的往往是上次的旧进度，
+      // 这正是「每次打开都停在固定章节、手动刷新后才正确」的根因。
+      const latestProgressPromise = this.fetchLatestProgress();
       this.getCatalog(refresh).then(
-        res => {
+        async res => {
           if (res.data.isSuccess) {
             var book = Object.assign({}, this.$store.state.readingBook);
             book.catalog = res.data.data;
+            // 用服务端最新进度覆盖本地可能陈旧的进度
+            const latest = await latestProgressPromise;
+            if (latest && typeof latest.durChapterIndex === "number") {
+              book.durChapterIndex = latest.durChapterIndex;
+              book.index = latest.durChapterIndex;
+              if (typeof latest.durChapterPos === "number") {
+                book.durChapterPos = latest.durChapterPos;
+              }
+            }
             this.$store.commit("setReadingBook", book);
             // 进度优先使用服务端保存的真实章节(durChapterIndex)，避免本地缓存的 index 为 0 时
-            // 每次打开都跳到固定章节。刷新(重新拉取书架)后能显示正确进度也是因为拿到了最新 durChapterIndex。
+            // 每次打开都跳到固定章节。
             var index = (book.durChapterIndex ?? book.index) || 0;
             this.getContent(index);
           } else {
@@ -1040,6 +1053,34 @@ export default {
           this.$store.state.readingBook.bookUrl +
           "@chapterList"
       );
+    },
+    // 直接从服务端拉取该书的最新阅读进度（不经过本地缓存）。
+    // 失败时返回 null，调用方退回原有逻辑，保证离线/异常场景不受影响。
+    async fetchLatestProgress() {
+      try {
+        const bookUrl = this.$store.state.readingBook.bookUrl;
+        // 来自搜索结果的书还没入书架，服务端没有它的进度
+        if (!bookUrl || !this.api || this.$route.query.search) {
+          return null;
+        }
+        const res = await Axios.get(this.api + "/getBookshelf", {
+          timeout: 8000
+        });
+        if (!res || !res.data || !res.data.isSuccess) {
+          return null;
+        }
+        const list = res.data.data || [];
+        const found = list.find(b => b && b.bookUrl === bookUrl);
+        if (!found) {
+          return null;
+        }
+        return {
+          durChapterIndex: found.durChapterIndex,
+          durChapterPos: found.durChapterPos
+        };
+      } catch (error) {
+        return null;
+      }
     },
     refreshCatalog() {
       return this.loadCatalog(true);
@@ -2141,7 +2182,7 @@ export default {
         if (this.error) {
           return;
         }
-        const lastPosition =
+        let lastPosition =
           window.localStorage &&
           window.localStorage.getItem(
             "bookChapterProgress@" +
@@ -2151,6 +2192,14 @@ export default {
               "@" +
               (this.$store.state.readingBook.bookUrl || "").MD5(16)
           );
+        // 本设备没有本地记录时（例如换手机/换浏览器打开远程访问链接），
+        // 回退到服务端保存的章节内位置 durChapterPos，实现跨设备续读。
+        if (!+lastPosition) {
+          const serverPos = this.$store.state.readingBook.durChapterPos;
+          if (+serverPos) {
+            lastPosition = serverPos;
+          }
+        }
         if (+lastPosition) {
           this.$nextTick(() => {
             this.showPosition(+lastPosition, () => {

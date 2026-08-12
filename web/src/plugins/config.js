@@ -95,27 +95,31 @@ const settings = {
       popup: "#f7f7f7 repeat"
     }
   ],
+  // 字体栈说明：必须把「真实系统字体名」放在最前面，reader-ht/kt/st/fs 这些
+  // @font-face 别名（App.vue 中用 local() 声明）只能放在最后当兜底。
+  // 原因：iOS Safari 不支持 @font-face 的 local() 源，别名放首位会导致整个字体栈
+  // 失效、退回系统默认字体，表现为「iPhone 上切换字体无任何变化」。
   fonts: [
     {},
     // 黑体
     {
       fontFamily:
-        '"reader-ht", "Noto Sans CJK SC", "Source Han Sans SC", "Source Han Sans CN", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Heiti SC", "WenQuanYi Micro Hei", sans-serif'
+        '"Heiti SC", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", "Source Han Sans CN", "Hiragino Sans GB", "WenQuanYi Micro Hei", "reader-ht", sans-serif'
     },
     // 楷体
     {
       fontFamily:
-        '"reader-kt", "Kaiti SC", "STKaiti", "KaiTi", "楷体", "AR PL UKai CN", serif'
+        '"Kaiti SC", "STKaiti", "KaiTi", "楷体", "AR PL UKai CN", "reader-kt", serif'
     },
     // 宋体
     {
       fontFamily:
-        '"reader-st", "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", "Source Han Serif CN", "STSong", "SimSun", "宋体", serif'
+        '"Songti SC", "STSong", "SimSun", "宋体", "Noto Serif CJK SC", "Source Han Serif SC", "Source Han Serif CN", "reader-st", serif'
     },
     // 仿宋
     {
       fontFamily:
-        '"reader-fs", "STFangsong", "FangSong", "FangSong_GB2312", "仿宋", serif'
+        '"STFangsong", "FangSong", "FangSong_GB2312", "仿宋", "Kaiti SC", "reader-fs", serif'
     }
   ],
   maxReadWidth: Math.floor(window.innerWidth / 160) * 160,

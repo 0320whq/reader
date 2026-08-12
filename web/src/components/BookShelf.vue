@@ -93,7 +93,14 @@ export default {
             }
           }),
         "getBookshelf" +
-          ((this.$store.state.userInfo || {}).username || "default")
+          ((this.$store.state.userInfo || {}).username || "default"),
+        false,
+        // 后台取到最新书架后回刷，避免一直显示本地旧缓存的阅读进度
+        data => {
+          if (data && data.isSuccess) {
+            this.$store.commit("setShelfBooks", data.data);
+          }
+        }
       ).then(
         res => {
           this.refreshLoading = false;

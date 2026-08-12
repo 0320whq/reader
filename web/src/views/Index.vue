@@ -1711,7 +1711,15 @@ export default {
         "getBookshelf@" +
           (this.$store.state.isManagerMode
             ? this.userNS
-            : (this.$store.state.userInfo || {}).username || "default")
+            : (this.$store.state.userInfo || {}).username || "default"),
+        false,
+        // 首屏可能先渲染的是本地旧缓存，这里在后台拿到最新书架后回刷，
+        // 保证阅读进度（durChapterIndex）显示为最新，无需用户手动刷新。
+        data => {
+          if (data && data.isSuccess) {
+            this.$store.commit("setShelfBooks", data.data);
+          }
+        }
       )
         .then(response => {
           this.$store.commit("setConnected", true);
