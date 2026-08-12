@@ -996,7 +996,9 @@ export default {
             var book = Object.assign({}, this.$store.state.readingBook);
             book.catalog = res.data.data;
             this.$store.commit("setReadingBook", book);
-            var index = book.index || 0;
+            // 进度优先使用服务端保存的真实章节(durChapterIndex)，避免本地缓存的 index 为 0 时
+            // 每次打开都跳到固定章节。刷新(重新拉取书架)后能显示正确进度也是因为拿到了最新 durChapterIndex。
+            var index = (book.durChapterIndex ?? book.index) || 0;
             this.getContent(index);
           } else {
             if (init) {

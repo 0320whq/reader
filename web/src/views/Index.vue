@@ -1973,7 +1973,7 @@ export default {
       this.$store.commit("setReadingBook", {
         bookName: book.bookName || book.name,
         bookUrl: book.bookUrl,
-        index: book.index ?? book.durChapterIndex ?? 0,
+        index: book.durChapterIndex ?? book.index ?? 0,
         type: book.type,
         coverUrl: this.getBookCoverUrl(book),
         author: book.author,

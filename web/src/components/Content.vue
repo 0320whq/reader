@@ -113,8 +113,9 @@ export default {
         fontSize: this.$store.getters.config.fontSize + "px",
         fontWeight: this.$store.getters.config.fontWeight || undefined,
         color: fontColor,
-        ...this.$store.getters.currentFontFamily,
-        ...(this.$store.getters.config.contentCSS || {})
+        // 用户选择的字体优先级高于自定义 reader.css，避免被服务端 contentCSS 的 font-family 覆盖
+        ...(this.$store.getters.config.contentCSS || {}),
+        ...this.$store.getters.currentFontFamily
       };
     },
     pStyle() {
