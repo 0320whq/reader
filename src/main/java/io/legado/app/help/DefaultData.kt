@@ -4,13 +4,14 @@ package io.legado.app.help
 import io.legado.app.data.entities.TxtTocRule
 import io.legado.app.utils.GSON
 import io.legado.app.utils.fromJsonArray
-import java.io.File
 
 object DefaultData {
     const val txtTocRuleFileName = "txtTocRule.json"
 
     val txtTocRules: List<TxtTocRule> by lazy {
-        val json = String(DefaultData::class.java.getResource("${File.separator}defaultData${File.separator}$txtTocRuleFileName").readBytes())
+        // classpath 内资源必须用 '/' 分隔符（不能用 File.separator，Windows 上为 '\' 会导致 getResource 找不到资源）。
+        // 资源位于 classpath 根：defaultData/txtTocRule.json
+        val json = String(DefaultData::class.java.getResource("/defaultData/$txtTocRuleFileName").readBytes())
         GSON.fromJsonArray<TxtTocRule>(json).getOrNull() ?: emptyList()
     }
 

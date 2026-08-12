@@ -295,13 +295,9 @@ export default new Vuex.Store({
       if (config.theme !== "custom") {
         config.theme = parseInt(config.theme);
       }
-      // DEF-08: 当手动切主题时禁用 autoTheme，防止 matchMedia 覆盖
-      if (
-        window.localStorage &&
-        window.localStorage.getItem("themeManualOverride") === "true"
-      ) {
-        config.autoTheme = false;
-      }
+      // 注意：不再因历史手动选择而强制关闭 autoTheme。
+      // 手动选主题通过 setTheme() 即时把 autoTheme 置 false 即可，
+      // 这样用户在设置里打开“自动切换”后能真正跟随系统，不会被旧标志再次关掉。
       // 逐个属性赋值触发 Vue 2 setter
       Object.keys(config).forEach(key => {
         state.config[key] = config[key];

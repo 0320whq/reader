@@ -97,7 +97,7 @@
         style="display:none"
       />
       <span class="check-tip">已选择 {{ localFileSelection.length }} 个</span>
-      @<el-button size="medium" @click="cancel">取消</el-button>
+      <el-button size="medium" @click="cancel">取消</el-button>
     </div>
   </el-dialog>
 </template>
@@ -301,5 +301,20 @@ export default {
 <style lang="stylus" scoped>
 .float-left {
   float: left;
+}
+// 移动端全屏时，底部操作栏可能因按钮过多被裁切/显示不全。
+// 改为可换行的弹性布局，并预留底部安全区，确保所有按钮完整可见。
+.dialog-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  padding-left: calc(20px + env(safe-area-inset-left));
+  padding-right: calc(20px + env(safe-area-inset-right));
+}
+.dialog-footer .float-left {
+  float: none;
+  margin: 0;
 }
 </style>

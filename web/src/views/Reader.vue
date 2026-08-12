@@ -418,7 +418,11 @@ export default {
     }
     // 监听页面关闭/隐藏事件保存阅读进度
     // 同时使用 unload、pagehide（iOS Safari）和 visibilitychange 确保移动端可靠触发
-    this._savePositionOnUnload = () => this.saveReadingPosition();
+    this._savePositionOnUnload = () => {
+      this.saveReadingPosition();
+      // 页面真正关闭时，用 sendBeacon 兜底把最新进度送达服务器
+      this.beaconBookProgress(this._lastReadingPosition);
+    };
     window.addEventListener("unload", this._savePositionOnUnload);
     window.addEventListener("pagehide", this._savePositionOnUnload);
     this._savePositionOnVisibilityChange = () => {
@@ -465,7 +469,7 @@ export default {
     this.$Lazyload.$on("loaded", this.lazyloadHandler);
   },
   deactivated() {
-    this.saveBookProgress();
+    this.saveBookProgress(this._lastReadingPosition);
     this.startSavePosition = false;
     this.lastReadingBook = this.$store.state.readingBook;
     this.timer && clearInterval(this.timer);
@@ -1158,17 +1162,80 @@ export default {
         }
       );
     },
-    saveBookProgress() {
+    saveBookProgress(durChapterPos = -1) {
+      if (durChapterPos == null || durChapterPos < 0) durChapterPos = -1;
       return Axios.post(
         this.api + "/saveBookProgress",
         {
           url: this.$store.state.readingBook.bookUrl,
-          index: this.chapterIndex
+          index: this.chapterIndex,
+          durChapterPos: durChapterPos
         },
         {
           silent: true
         }
       ).catch(() => {});
+    },
+    // 计算当前阅读进度（章节内位置），供本地存储与服务器同步共用
+    computeReadingPosition() {
+      let position = 0;
+      if (this.isAudio) {
+        position = this.$refs.bookContentRef
+          ? this.$refs.bookContentRef.currentTime
+          : 0;
+      } else if (this.isEpub || this.isCarToon) {
+        position =
+          document.documentElement.scrollTop || document.body.scrollTop;
+      } else {
+        this.currentParagraph = this.getCurrentParagraph();
+        if (this.currentParagraph) {
+          position = this.$refs.bookContentRef.$el.innerText.indexOf(
+            this.currentParagraph.innerText
+          );
+        }
+      }
+      return position;
+    },
+    // 节流后把阅读进度同步到服务器，避免滚动时频繁请求
+    syncBookProgress(durChapterPos) {
+      const now = Date.now();
+      if (this._lastProgressSync && now - this._lastProgressSync < 2000) {
+        // 保留最新位置，待节流结束后补发一次，确保关闭网页前最终位置落库
+        this._pendingProgressSync = durChapterPos;
+        if (!this._progressSyncTimer) {
+          this._progressSyncTimer = setTimeout(() => {
+            this._progressSyncTimer = null;
+            if (this._pendingProgressSync !== null) {
+              const p = this._pendingProgressSync;
+              this._pendingProgressSync = null;
+              this._lastProgressSync = Date.now();
+              this.saveBookProgress(p);
+            }
+          }, 2000);
+        }
+        return;
+      }
+      this._lastProgressSync = now;
+      this.saveBookProgress(durChapterPos);
+    },
+    // 页面真正关闭/切后台时，用 sendBeacon 兜底，确保最新进度送达服务器
+    beaconBookProgress(durChapterPos) {
+      try {
+        if (durChapterPos == null || durChapterPos < 0) durChapterPos = -1;
+        const payload = JSON.stringify({
+          url: this.$store.state.readingBook.bookUrl,
+          index: this.chapterIndex,
+          durChapterPos: durChapterPos
+        });
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(
+            this.api + "/saveBookProgress",
+            new Blob([payload], { type: "application/json" })
+          );
+        }
+      } catch (e) {
+        //
+      }
     },
     toTop() {
       if (this.$store.state.miniInterface) {
@@ -2046,22 +2113,7 @@ export default {
         if (this.error || !this.startSavePosition) {
           return;
         }
-        let position = 0;
-        if (this.isAudio) {
-          position = this.$refs.bookContentRef
-            ? this.$refs.bookContentRef.currentTime
-            : 0;
-        } else if (this.isEpub || this.isCarToon) {
-          position =
-            document.documentElement.scrollTop || document.body.scrollTop;
-        } else {
-          this.currentParagraph = this.getCurrentParagraph();
-          if (this.currentParagraph) {
-            position = this.$refs.bookContentRef.$el.innerText.indexOf(
-              this.currentParagraph.innerText
-            );
-          }
-        }
+        let position = this.computeReadingPosition();
         window.localStorage &&
           window.localStorage.setItem(
             "bookChapterProgress@" +
@@ -2072,6 +2124,9 @@ export default {
               (this.$store.state.readingBook.bookUrl || "").MD5(16),
             position
           );
+        // 缓存当前进度并在服务端同步，确保关闭网页/切后台后阅读进度是最新的
+        this._lastReadingPosition = position;
+        this.syncBookProgress(position);
       } catch (error) {
         //
       }

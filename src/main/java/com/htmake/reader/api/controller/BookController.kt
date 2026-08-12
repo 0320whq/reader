@@ -103,6 +103,34 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
         getInvalidBookSourceCache(userNameSpace).put(sourceUrl, jsonEncode(invalidInfo), 600)
     }
 
+    /**
+     * 判断异常是否为“书源确凿失效”信号。
+     * 仅在命中确凿失效类型时才标记书源失效，避免超时/解析/限流等瞬时异常
+     * 把正常可用的书源误判为失效（原逻辑只要抛异常就标记，误杀率过高）。
+     */
+    private fun isConclusiveBookSourceFailure(e: Throwable): Boolean {
+        val msg = (e.message ?: "") + " " + (e.cause?.message ?: "") + " " + e.javaClass.name
+        val conclusive = listOf(
+            "UnknownHostException", "ConnectException", "Connection refused",
+            "Connection reset", "SSLHandshakeException", "CertificateException",
+            "NoRouteToHost", "ENOTFOUND", "ECONNREFUSED", "ECONNRESET",
+            "responseCode: 400", "responseCode: 401", "responseCode: 403",
+            "responseCode: 404", "responseCode: 500", "responseCode: 502",
+            "responseCode: 503", "responseCode: 504", "responseCode: 513"
+        )
+        if (conclusive.any { msg.contains(it) }) return true
+        // 瞬时/非确凿失败：不标记失效
+        val transient = listOf(
+            "Timeout", "timed out", "Read timed out", "SocketTimeout",
+            "JsonException", "JSONException", "ParseException", "org.json",
+            "429", "TooManyRequests", "abort", "Cancel", "InterruptedException",
+            "ClosedChannel", "UnknownServiceException"
+        )
+        if (transient.any { msg.contains(it) }) return false
+        // 兜底：未命中确凿信号也未命中瞬时信号的未知异常，保守地不标记，避免误杀正常书源
+        return false
+    }
+
     suspend fun getInvalidBookSources(context: RoutingContext): ReturnData {
         val returnData = ReturnData()
         if (!checkAuth(context)) {
@@ -129,7 +157,7 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
         var bookUrl: String
         if (context.request().method() == HttpMethod.POST) {
             // post 请求
-            bookUrl = context.bodyAsJson.getString("url") ?: context.bodyAsJson.getJsonObject("searchBook").getString("bookUrl") ?: ""
+            bookUrl = context.bodyAsJson.getString("url") ?: context.bodyAsJson.getJsonObject("searchBook")?.getString("bookUrl") ?: ""
         } else {
             // get 请求
             bookUrl = context.queryParam("url").firstOrNull() ?: ""
@@ -324,7 +352,7 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
         var refresh: Int = 0
         if (context.request().method() == HttpMethod.POST) {
             // post 请求
-            bookUrl = context.bodyAsJson.getString("url") ?: context.bodyAsJson.getJsonObject("book").getString("bookUrl") ?: ""
+            bookUrl = context.bodyAsJson.getString("url") ?: context.bodyAsJson.getJsonObject("book")?.getString("bookUrl") ?: ""
             refresh = context.bodyAsJson.getInteger("refresh", 0)
         } else {
             // get 请求
@@ -381,14 +409,17 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
         }
         var bookUrl: String
         var chapterIndex: Int
+        var position = -1
         if (context.request().method() == HttpMethod.POST) {
             // post 请求
-            bookUrl = context.bodyAsJson.getString("url") ?: context.bodyAsJson.getJsonObject("searchBook").getString("bookUrl") ?: ""
+            bookUrl = context.bodyAsJson.getString("url") ?: context.bodyAsJson.getJsonObject("searchBook")?.getString("bookUrl") ?: ""
             chapterIndex = context.bodyAsJson.getInteger("index", -1)
+            position = context.bodyAsJson.getInteger("durChapterPos", -1)
         } else {
             // get 请求
             bookUrl = context.queryParam("url").firstOrNull() ?: ""
             chapterIndex = safeToInt(context.queryParam("index").firstOrNull(), -1)
+            position = safeToInt(context.queryParam("durChapterPos").firstOrNull(), -1)
             bookUrl = URLDecoder.decode(bookUrl, "UTF-8")
         }
         if (bookUrl.isNullOrEmpty()) {
@@ -410,8 +441,8 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
             return returnData.setErrorMsg("章节不存在")
         }
         var chapterInfo = chapterList.get(chapterIndex)
-        // 书架书籍保存阅读进度
-        saveShelfBookProgress(bookInfo, chapterInfo, userNameSpace)
+        // 书架书籍保存阅读进度（含页内位置，便于关闭网页后同步最新进度）
+        saveShelfBookProgress(bookInfo, chapterInfo, userNameSpace, position)
         // 保存到 webdav
         saveBookProgressToWebdav(bookInfo, chapterInfo, userNameSpace)
         return returnData.setData("")
@@ -429,8 +460,8 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
         var refresh: Int
         if (context.request().method() == HttpMethod.POST) {
             // post 请求
-            chapterUrl = context.bodyAsJson.getString("chapterUrl") ?: context.bodyAsJson.getJsonObject("bookChapter").getString("url") ?: ""
-            bookUrl = context.bodyAsJson.getString("url") ?: context.bodyAsJson.getJsonObject("searchBook").getString("bookUrl") ?: ""
+            chapterUrl = context.bodyAsJson.getString("chapterUrl") ?: context.bodyAsJson.getJsonObject("bookChapter")?.getString("url") ?: ""
+            bookUrl = context.bodyAsJson.getString("url") ?: context.bodyAsJson.getJsonObject("searchBook")?.getString("bookUrl") ?: ""
             chapterIndex = context.bodyAsJson.getInteger("index", -1)
             cache = context.bodyAsJson.getInteger("cache", 0)
             refresh = context.bodyAsJson.getInteger("refresh", 0)
@@ -577,7 +608,7 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
                     if (bookSourceObject != null) {
                         // 标记为失败源
                         val info = mutableMapOf<String, Any>("sourceUrl" to bookSourceObject.bookSourceUrl, "time" to System.currentTimeMillis(), "error" to e.toString())
-                        addInvalidBookSource(bookSourceObject.bookSourceUrl, info, userNameSpace)
+                        if (isConclusiveBookSourceFailure(e)) addInvalidBookSource(bookSourceObject.bookSourceUrl, info, userNameSpace)
                     }
                 }
                 throw e
@@ -1020,7 +1051,7 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
             } catch(e: Exception) {
                 // 标记为失败源
                 val info = mutableMapOf<String, Any>("sourceUrl" to bookSource.bookSourceUrl, "time" to System.currentTimeMillis(), "error" to e.toString())
-                addInvalidBookSource(bookSource.bookSourceUrl, info, userNameSpace)
+                if (isConclusiveBookSourceFailure(e)) addInvalidBookSource(bookSource.bookSourceUrl, info, userNameSpace)
 
                 e.printStackTrace()
             }
@@ -1391,7 +1422,9 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
 
         // 删除书籍目录
         val safeDirName = (book.name + "_" + book.author).replace("..", "_").replace("/", "_").replace("\\", "_")
-        val localBookPath = safeResolveFile(getWorkDir("storage", "data", userNameSpace), "/" + safeDirName)
+        // 不加前导 "/"：safeResolveFile 会把以 "/" 开头的路径当作绝对路径（Windows 下解析歧义），
+        // 直接传相对目录名即可正确定位到 storage/data/{ns}/{书名_作者}/。
+        val localBookPath = safeResolveFile(getWorkDir("storage", "data", userNameSpace), safeDirName)
         localBookPath?.deleteRecursively()
 
         return returnData.setData("")
@@ -1574,7 +1607,7 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
                         if (bookSourceObject != null) {
                             // 标记为失败源
                             val info = mutableMapOf<String, Any>("sourceUrl" to bookSourceObject.bookSourceUrl, "time" to System.currentTimeMillis(), "error" to e.toString())
-                            addInvalidBookSource(bookSourceObject.bookSourceUrl, info, userNameSpace)
+                            if (isConclusiveBookSourceFailure(e)) addInvalidBookSource(bookSourceObject.bookSourceUrl, info, userNameSpace)
                         }
                     }
                     throw e
@@ -1678,11 +1711,12 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
         return null
     }
 
-    fun saveShelfBookProgress(book: Book, bookChapter: BookChapter, userNameSpace: String) {
+    fun saveShelfBookProgress(book: Book, bookChapter: BookChapter, userNameSpace: String, durChapterPos: Int = -1) {
         editShelfBook(book, userNameSpace) { existBook ->
             existBook.durChapterIndex = bookChapter.index
             existBook.durChapterTitle = bookChapter.title
             existBook.durChapterTime = System.currentTimeMillis()
+            if (durChapterPos >= 0) existBook.durChapterPos = durChapterPos
 
             // logger.info("saveShelfBookProgress: {}", existBook)
 
@@ -2061,7 +2095,13 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
                     file.delete()
                     return@forEach
                 }
-                val safeBase = safeResolveFile(getWorkDir("storage", "localStore"), path)
+                val localStoreRoot = File(home)
+                if (!localStoreRoot.exists()) {
+                    localStoreRoot.mkdirs()
+                }
+                // 上传时 path 可能为空（上传到书仓根目录）。safeResolveFile 对空串返回 null，
+                // 这里与 getLocalStoreFileList 保持一致：空路径直接定位到书仓根目录。
+                val safeBase = if (path.isEmpty()) localStoreRoot else safeResolveFile(home, path)
                 if (safeBase == null) {
                     file.delete()
                     return@forEach
@@ -2116,7 +2156,14 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
             path = "/"
         }
         var home = getWorkDir("storage", "localStore")
-        var file = safeResolveFile(home, path)
+        var homeFile = File(home)
+        if (!homeFile.exists()) {
+            homeFile.mkdirs()
+        }
+        // 前端传入的路径以 "/" 开头，safeResolveFile 会将其当作绝对路径导致解析失败；
+        // 去掉前导 "/" 还原为相对于书仓的相对路径，空路径则直接指向书仓根目录。
+        var relPath = path.trimStart('/')
+        var file = if (relPath.isEmpty()) homeFile else safeResolveFile(home, relPath)
         if (file == null) {
             return returnData.setErrorMsg("非法路径")
         }
@@ -2173,7 +2220,8 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
             return
         }
         var home = getWorkDir("storage", "localStore")
-        var file = safeResolveFile(home, path)
+        var relPath = path.trimStart('/')
+        var file = safeResolveFile(home, relPath)
         if (file == null) {
             context.success(returnData.setErrorMsg("非法路径"))
             return
@@ -2216,7 +2264,8 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
             return returnData.setErrorMsg("参数错误")
         }
         var home = getWorkDir("storage", "localStore")
-        var file = safeResolveFile(home, path)
+        var relPath = path.trimStart('/')
+        var file = safeResolveFile(home, relPath)
         if (file == null) {
             return returnData.setErrorMsg("非法路径")
         }
@@ -2253,7 +2302,7 @@ class BookController(coroutineContext: CoroutineContext): BaseController(corouti
         path.forEach {
             var filePath = URLDecoder.decode(it as String? ?: "", "UTF-8")
             if (filePath.isNotEmpty()) {
-                var file = safeResolveFile(home, filePath)
+                var file = safeResolveFile(home, filePath.trimStart('/'))
                 if (file != null) {
                     file.deleteRecursively()
                 }

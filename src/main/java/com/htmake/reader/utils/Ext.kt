@@ -124,6 +124,7 @@ fun zip(files: List<File>, zipFilePath: String): Boolean {
         for (file in files) {
             if (!file.exists()) continue
             zipOutputStream.putNextEntry(ZipEntry(file.name))
+            inputStream?.close()
             inputStream = FileInputStream(file)
             var len: Int
             while (inputStream.read(buffer).also { len = it } > 0) {
@@ -151,8 +152,8 @@ fun createDir(filePath: String): File {
 
 fun createFile(filePath: String): File {
     val file = File(filePath)
-    val parentFile = file.parentFile!!
-    if (!parentFile.exists()) {
+    val parentFile = file.parentFile
+    if (parentFile != null && !parentFile.exists()) {
         parentFile.mkdirs()
     }
     if (!file.exists()) {

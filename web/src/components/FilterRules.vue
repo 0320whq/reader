@@ -55,6 +55,19 @@ export default {
   methods: {
     mountToBody() {
       if (this.mountedBody) return;
+      // 关闭可能仍悬浮在顶部的设置面板（el-popover，z-index 通常高于本浮层），
+      // 否则在 iPhone 上设置面板会压住过滤规则浮层顶部，导致“过滤规则被设置遮挡”。
+      try {
+        document.querySelectorAll(".el-popover").forEach(el => {
+          if (el !== this._overlayEl) el.style.display = "none";
+        });
+      } catch (e) {
+        //
+      }
+      // 双重保险：临时隐藏 App 根，让顶栏（首页/书架/书源/目录/设置/顶部/底部）
+      // 没法浮在过滤规则之上。卸载时恢复。
+      const appEl = document.getElementById("app");
+      if (appEl) appEl.style.visibility = "hidden";
       const el = this.createOverlay();
       document.body.appendChild(el);
       this._overlayEl = el;
@@ -70,6 +83,9 @@ export default {
       }
       this._overlayEl = null;
       this.mountedBody = false;
+      // 恢复 App 根可见
+      const appEl = document.getElementById("app");
+      if (appEl) appEl.style.visibility = "";
       // 恢复底层滚动
       document.body.style.overflow = "";
       document.body.style.touchAction = "";
@@ -300,23 +316,19 @@ export default {
       this.$message.success("已删除");
     },
     clearAll() {
-      // 临时隐藏过滤规则面板，避免 $confirm 确认框被面板遮挡
-      if (this._overlayEl) {
-        this._overlayEl.style.display = "none";
-      }
+      // 不再隐藏过滤规则面板（el-message-box 通过 zIndex 选项显式置顶，
+      // 让确认框在过滤规则之上显示而不是被遮住）。
       this.$confirm("确定要清空所有过滤规则吗？", "提示", {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
-        type: "warning"
+        type: "warning",
+        zIndex: 3000
       }).then(() => {
         this.$store.commit("setFilterRules", []);
         this.refreshOverlay();
         this.$message.success("已清空");
       }).catch(() => {
-        // 用户取消，恢复显示
-        if (this._overlayEl) {
-          this._overlayEl.style.display = "";
-        }
+        // 用户取消，无需任何操作
       });
     },
     close() {
@@ -347,9 +359,9 @@ export default {
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.5);
-  /* z-index 必须低于 Element UI MessageBox 默认起始值 2000，
-     否则 this.$confirm() 的遮罩层会覆盖面板 */
-  z-index: 1500;
+  /* z-index 必须高于 App 顶栏（首页/书架/书源/目录/设置/顶部/底部），且低于
+     clearAll() 里的 $confirm 显式 zIndex: 3000，过滤规则：2500，确认框：3000 */
+  z-index: 2500;
   display: flex;
   align-items: center;
   justify-content: center;

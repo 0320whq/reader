@@ -471,10 +471,8 @@ export default {
     setTheme(theme) {
       let config = { ...this.config };
       config.theme = theme;
-      config.autoTheme = false; // DEF-08: 手动选主题时禁用自动跟随
+      config.autoTheme = false; // 手动选主题时禁用自动跟随
       this.$store.commit("setConfig", config);
-      window.localStorage &&
-        window.localStorage.setItem("themeManualOverride", "true");
     },
     setAutoTheme() {
       let config = { ...this.config };

@@ -120,6 +120,7 @@ export default {
     pStyle() {
       return {
         lineHeight: this.$store.getters.config.lineHeight,
+        ...this.$store.getters.currentFontFamily,
         marginTop:
           typeof this.$store.getters.config.paragraphSpace !== "undefined"
             ? this.$store.getters.config.paragraphSpace + "em"
