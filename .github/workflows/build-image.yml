@@ -1,0 +1,69 @@
+name: Build Reader Image (tar.gz download)
+
+# 在 GitHub 上构建 Docker 镜像，并导出为可直接下载的 tar.gz 压缩包（Artifact）。
+# 适合极空间等 NAS：下载 reader-app-image.tar.gz 后，在 Docker 中 docker load 导入即可，
+# 无需登录任何镜像仓库、无需配置 registry。
+#
+# 触发方式：Actions 页面 → 此工作流 → Run workflow
+# 产物下载：Actions → 对应 run → Artifacts → reader-app-image（保留 30 天）
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '镜像 tag（仅用于命名，不影响产物内容）'
+        required: false
+        default: 'latest'
+
+permissions:
+  contents: read
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ---- 1. 构建前端 web（产出 web/dist，稍后并入 jar）----
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Build web
+        run: cd web && npm install && npm run build
+
+      # ---- 2. 构建后端 jar（服务端版，排除桌面 JavaFX 壳）----
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '8'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build Java (server jar)
+        run: |
+          chmod +x ./gradlew
+          mv ./web/dist ./src/main/resources/web
+          # 服务端 jar 不需要 JavaFX 桌面入口；保留原文件，编译时临时移开
+          mv src/main/java/com/htmake/reader/ReaderUIApplication.kt src/main/java/com/htmake/reader/ReaderUIApplication.kt.back
+          ./gradlew -b cli.gradle assemble --no-daemon --info
+          mv src/main/java/com/htmake/reader/ReaderUIApplication.kt.back src/main/java/com/htmake/reader/ReaderUIApplication.kt
+          mv ./build/libs/*.jar ./reader.jar
+
+      # ---- 3. 构建镜像并导出为可下载的 tar.gz ----
+      - name: Build Docker image
+        run: |
+          docker build -f ./Dockerfile -t reader-app:latest .
+          docker save reader-app:latest | gzip > reader-app-image.tar.gz
+          ls -lh reader-app-image.tar.gz
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: reader-app-image
+          path: reader-app-image.tar.gz
+          retention-days: 30
