@@ -1,0 +1,89 @@
+name: Build & Push Reader (GHCR)
+
+# 在 GitHub 上构建 Docker 镜像并推送到 GHCR（GitHub 容器仓库），
+# 之后极空间 Z4 Pro 直接 docker pull 即可，免去手动下载 tar.gz 再 docker load。
+#
+# 触发方式：
+#   1) 手动：Actions 页面 → 此工作流 → Run workflow（可填镜像 tag，默认 latest）
+#   2) 打标签：git tag custom-v11 && git push origin custom-v11  （tag 名即镜像 tag）
+#
+# 推送地址：ghcr.io/<你的GitHub用户名>/<仓库名>:tag
+#   例：ghcr.io/0320whq/reader:latest
+
+on:
+  push:
+    tags:
+      - 'custom-**'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '镜像 tag（手动触发时生效）'
+        required: false
+        default: 'latest'
+
+# GITHUB_TOKEN 默认没有 packages 写权限，需要显式声明
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ---- 1. 构建前端 web（产出 web/dist，稍后并入 jar）----
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Build web
+        run: cd web && npm install && npm run build
+
+      # ---- 2. 构建后端 jar（服务端版，排除桌面 JavaFX 壳）----
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '8'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build Java (server jar)
+        run: |
+          chmod +x ./gradlew
+          mv ./web/dist ./src/main/resources/web
+          ./gradlew -b cli.gradle assemble --no-daemon --info
+          mv ./build/libs/*.jar ./reader.jar
+
+      # ---- 3. 构建并推送镜像到 GHCR ----
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/amd64     # 极空间 Z4 Pro 为 x86_64，只需 amd64
+          tags: ghcr.io/${{ github.repository }}:${{ steps.tag.outputs.tag }}

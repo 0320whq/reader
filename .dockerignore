@@ -1,47 +1,28 @@
-HELP.md
-.gradle
-build/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**
-!**/src/test/**
-
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-out/
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-
-### VS Code ###
-.vscode/
-
-
-.vertx
-out
-
-#/src/main/resources/application-prod.yml
-/src/main/resources/application-default.yml
-
-/src/main/resources/web
-/storage*
+# Docker 构建上下文精简：
+# 根目录 Dockerfile 只做一件事——把已构建好的 reader.jar 拷进 JRE 镜像。
+# jar 已在 runner 里编译完成，因此下面这些源码/依赖目录都不需要进入构建上下文，
+# 否则 web/ 下 5 万多个文件会让 docker build 上下文传输极慢。
+/web
+/src
+/gradle
+/.github
+/e2e
+/storage
 /logs
-/bin
 /file-uploads
+/assets
+/imgs
+/build
+/reader-deploy
+/deliverables
+/.workbuddy
+/.pre-zip-backup
+/.gradle
 node_modules
-/reader-assets
+.gradle
+
+# 所有 jar/压缩包都排除，只把本次构建出来的 reader.jar 放进来
+*.jar
+!reader.jar
+*.zip
+*.tar.gz
