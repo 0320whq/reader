@@ -326,21 +326,17 @@ export default {
       let bodyStyle = "";
       for (const i in this.containerStyle) {
         if (Object.hasOwnProperty.call(this.containerStyle, i)) {
-          bodyStyle +=
-            i.replace(/([A-Z])/g, v => "-" + v.toLowerCase()) +
-            ":" +
-            this.containerStyle[i] +
-            ";";
+          const cssKey = i.replace(/([A-Z])/g, v => "-" + v.toLowerCase());
+          const important = cssKey === "font-family" ? " !important" : "";
+          bodyStyle += cssKey + ":" + this.containerStyle[i] + important + ";";
         }
       }
       let pStyle = "";
       for (const i in this.pStyle) {
         if (Object.hasOwnProperty.call(this.pStyle, i)) {
-          pStyle +=
-            i.replace(/([A-Z])/g, v => "-" + v.toLowerCase()) +
-            ":" +
-            this.pStyle[i] +
-            ";";
+          const cssKey = i.replace(/([A-Z])/g, v => "-" + v.toLowerCase());
+          const important = cssKey === "font-family" ? " !important" : "";
+          pStyle += cssKey + ":" + this.pStyle[i] + important + ";";
         }
       }
       this.sendToIframe("setStyle", {

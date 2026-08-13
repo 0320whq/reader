@@ -3,7 +3,7 @@ package com.htmake.reader.config
 import java.io.File
 
 object BookConfig {
-    val javascriptVersion = "reader-inject-javascript-1.1.0"
+    val javascriptVersion = "reader-inject-javascript-1.2.0"
     val epubInjectJavascript = """
     //<![CDATA[
     // ${javascriptVersion}
@@ -20,10 +20,16 @@ object BookConfig {
 
         var reader_style_dom = document.createElement('style');
         var head = document.head || document.getElementsByTagName('head')[0];
+        if (!head) {
+            head = document.createElement('head');
+            document.documentElement.insertBefore(head, document.documentElement.firstChild);
+        }
         head.appendChild(reader_style_dom);
 
         function reader_setStyle(style) {
-            reader_style_dom.innerText = style;
+            // iOS Safari 对 <style> 元素用 innerText 注入 CSS 不可靠（老版本会直接忽略），
+            // 改用 textContent 跨浏览器可靠生效，修复「iPhone 上切换字体无任何变化」。
+            reader_style_dom.textContent = style;
             reader_notifyHeight();
             setTimeout(reader_notifyHeight, 100);
         }
