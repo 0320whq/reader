@@ -2740,7 +2740,8 @@ export default {
   }
 
   .chapter {
-    font-family: 'Microsoft YaHei', PingFangSC-Regular, HelveticaNeue-Light, 'Helvetica Neue Light', sans-serif;
+    /* 阅读正文字体统一由 Content.vue 内联 currentFontFamily 控制，
+       此处不再写死，避免覆盖用户在设置里选择的字体（尤其 iOS 上切换字体无效的问题）。 */
     text-align: left;
     padding: 0 65px;
     min-height: 100vh;
@@ -2798,7 +2799,7 @@ export default {
       font-size: 18px;
       line-height: 1.8;
       overflow: hidden;
-      font-family: 'Microsoft YaHei', PingFangSC-Regular, HelveticaNeue-Light, 'Helvetica Neue Light', sans-serif;
+      /* 字体交由 Content.vue 内联 currentFontFamily 控制 */
 
       .content-inner {
         min-height: calc(var(--vh, 1vh) * 80);
