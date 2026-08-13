@@ -108,7 +108,10 @@ module.exports = {
       exclude: ["index.html"],
       importScripts: ["sw.js"],
       cleanupOutdatedCaches: true,
-      // skipWaiting: true,
+      // 关键：每次构建新镜像后，让新的 Service Worker 立即接管并控制已打开的页面，
+      // 否则 iOS / 主屏 PWA 会一直用首次部署时缓存的旧 SW，导致后续所有修复（字体、进度等）到不了手机端。
+      skipWaiting: true,
+      clientsClaim: true,
       runtimeCaching: [
         {
           // 首页

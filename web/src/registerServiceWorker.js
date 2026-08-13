@@ -8,6 +8,16 @@ export function registerServiceWorker() {
       process.env.NODE_ENV === "production" &&
       !window.getQueryString("nopwa")
     ) {
+      // 新 Service Worker 接管已打开的页面后，自动刷新一次以加载新资源。
+      // 用 refreshing 标志防止 controllerchange 死循环。
+      let refreshing = false;
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (refreshing) return;
+          refreshing = true;
+          window.location.reload();
+        });
+      }
       register(`${process.env.BASE_URL}service-worker.js`, {
         ready() {
           // console.log(
@@ -17,21 +27,23 @@ export function registerServiceWorker() {
           window.serviceWorkerReady = true;
         },
         registered(registration) {
-          // console.log("Service worker has been registered.");
-          if (window.localStorage) {
-            const currentVersion = window.localStorage.getItem(
-              "READER_APP_BUILD_VERSION"
-            );
-            const newVersion = process.env.VUE_APP_BUILD_VERSION;
-            if (currentVersion !== newVersion) {
-              registration.active.postMessage({ type: "SKIP_WAITING" });
-              window.localStorage.setItem(
-                "READER_APP_BUILD_VERSION",
-                newVersion
-              );
-            }
+          // 让处于 waiting 状态的新 SW 立即生效（必须发给 registration.waiting，
+          // 之前误发给 registration.active 导致永远不激活，iOS 一直跑旧缓存）。
+          if (registration.waiting) {
+            registration.waiting.postMessage({ type: "SKIP_WAITING" });
           }
-        }
+          // 主动检查一次更新，尽快拉取新版本 SW
+          try {
+            registration.update();
+          } catch (e) {
+            // ignore
+          }
+        },
+        updated(registration) {
+          if (registration.waiting) {
+            registration.waiting.postMessage({ type: "SKIP_WAITING" });
+          }
+        },
         // cached() {
         //   console.log("Content has been cached for offline use.");
         // },
